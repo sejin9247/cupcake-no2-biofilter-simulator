@@ -839,7 +839,8 @@ function applyBC(){
   if(FL.ventOn){
     // 환기 — 순환 댐퍼를 닫았으므로 좌우 덕트 구동력이 없다.
     // 좌측 천장으로 외기가 내려오고 우측 천장으로 내기가 빠져나간다.
-    const w=uIn*0.5;
+    // 강제 순환보다 훨씬 완만하다. 빠르면 몇 초 만에 다 씻겨 나가 30분 환기로 보이지 않는다.
+    const w=uIn*0.25;
     for(let i=VENT_L[0];i<=VENT_L[1];i++){
       FL.u[IX(i,0)]=0; FL.v[IX(i,0)]=w;
       FL.u[IX(i,1)]=0; FL.v[IX(i,1)]=w;
@@ -940,7 +941,14 @@ function fluidStep(dt, bulk, injecting, eff){
   let s=0,c=0;
   for(let j=1;j<NY-1;j++) for(let i=1;i<NX-1;i++){ const k=IX(i,j); if(!solid[k]){ s+=dn[k]; c++; } }
   const mean=c?s/c:0;
-  if(mean<1e-4||bulk<1e-4||mean>8*bulk||bulk>8*mean){ FL.dn.fill(bulk); }
+  if(FL.ventOn){
+    // 환기 중에는 0-D 벌크 쪽으로 끌어올리면 안 된다. 외기가 씻어내는 속도를
+    // 정규화가 매 스텝 1.14배로 되돌려, 남은 덩어리가 주입 때보다 짙어진다.
+    // 내려가는 방향으로만 보정하고 상한도 1.0 으로 묶는다.
+    const g=clamp(bulk/Math.max(mean,1e-6),0.88,1.0);
+    for(let k=0;k<NN;k++) dn[k]=clamp(dn[k]*g,0,1);
+  }
+  else if(mean<1e-4||bulk<1e-4||mean>8*bulk||bulk>8*mean){ FL.dn.fill(bulk); }
   else { const g=clamp(bulk/mean,0.88,1.14);
     for(let k=0;k<NN;k++) dn[k]=clamp(dn[k]*g,0,1.6); }
 }
@@ -1284,15 +1292,19 @@ function paintField(){
   if(ST.field==='vel'){ for(let k=0;k<NN;k++){const m=Math.hypot(FL.u[k],FL.v[k]); if(m>vmax)vmax=m;} }
   // 단일통과 효율이 수 %라 실제 공간 대비는 매우 작다. 강조 모드는 평균 대비
   // 편차를 확대해 보여준다(정량값이 아니라 구조를 보기 위한 표시).
+  // 강조는 평균 대비 상대 편차를 키우는 방식이라, 환기로 평균이 작아지면
+  // 남은 덩어리가 (dn−fm)/fm 으로 폭주해 최대 농도색으로 칠해진다.
+  // 환기 중에는 대비가 이미 충분히 크므로(외기 vs 잔류) 강조를 끄고 실척으로 그린다.
+  const boost=ST.ov.boost&&!FL.ventOn;
   let fm=0;
-  if(ST.field==='conc'&&ST.ov.boost){ let s=0,c=0;
+  if(ST.field==='conc'&&boost){ let s=0,c=0;
     for(let k=0;k<NN;k++) if(!FL.solid[k]){s+=FL.dn[k];c++;} fm=c?s/c:0; }
   for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){
     const k=IX(i,j), o=k*4;
     let t;
     // 강조 모드의 기준값을 실제 벌크 수준에 비례시킨다. 고정 0.45 로 두면
     // 환기가 끝나 비어 있는 챔버도 한가운데 색으로 칠해져 NO₂ 가 남은 것처럼 보인다.
-    if(ST.field==='conc') t=ST.ov.boost&&fm>1e-5
+    if(ST.field==='conc') t=boost&&fm>1e-5
       ? clamp(0.06+0.42*clamp(fm,0,1)+(FL.dn[k]-fm)/fm*2.6,0,1)
       : clamp(FL.dn[k],0,1);
     else if(ST.field==='vel') t=clamp(Math.hypot(FL.u[k],FL.v[k])/vmax,0,1);
@@ -1589,7 +1601,9 @@ function updateColorbar(){
   const dark=isDark(), st=RAMPS[ST.field][dark?'dark':'light'];
   $('cbarRamp').style.background=`linear-gradient(90deg,${st.join(',')})`;
   if(ST.field==='conc'){
-    if(ST.ov.boost){ $('cbarLo').textContent='낮음'; $('cbarHi').textContent='높음';
+    if(FL.ventOn){ $('cbarLo').textContent='0'; $('cbarHi').textContent=SIM.peak.toFixed(2);
+      $('cbarUnit').textContent='ppm — 환기 중에는 대비 강조를 끄고 실척으로 표시합니다 (외기 vs 잔류 대비가 이미 큼)'; }
+    else if(ST.ov.boost){ $('cbarLo').textContent='낮음'; $('cbarHi').textContent='높음';
       $('cbarUnit').textContent='NO₂ 상대 농도 — 대비 강조 ON (평균 대비 편차를 확대한 표시. 실제 단일통과 제거는 '
         +(SIM.spre[idxAt(ST.playMin)]*100).toFixed(1)+' %)'; }
     else { $('cbarLo').textContent='0'; $('cbarHi').textContent=SIM.peak.toFixed(2);
@@ -1825,7 +1839,7 @@ function tick(now){
     // 환기 진입·복귀는 경계조건 자체가 바뀌는 일이라 격자를 다시 만든다.
     // (천장 개구부를 열고 좌우 덕트 댐퍼를 닫는다)
     const wantVent=ST.ventMin>=0;
-    if(FL.ventOn!==wantVent){ FL.ventOn=wantVent; buildGeometry(); }
+    if(FL.ventOn!==wantVent){ FL.ventOn=wantVent; buildGeometry(); updateColorbar(); }
     ST.acc+=vdt;
     if(ST.acc>1/32){
       const bulk=sceneBulk(i);
@@ -1864,6 +1878,8 @@ function resetRun(){
   if(FL.ventOn){ FL.ventOn=false; buildGeometry(); }   // 천장을 닫고 덕트 댐퍼를 연다
   resetField(cleanLevel());
   scatterParticles(260);
+  // 환기 문구가 남지 않도록 콜바도 되돌린다 (tick 의 전이 감지는 여기선 걸리지 않는다)
+  updateColorbar();
   updateLive(); drawTS(ST.playMin); drawCT(ST.playMin);
 }
 function setPlaying(v){

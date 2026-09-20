@@ -1,0 +1,1808 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>식생바이오필터 NO₂ 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --page:#eef2f4; --surface:#fbfcfc; --surface-2:#f4f7f8; --sunk:#e8eef0;
+  --ink:#10161a; --ink-2:#4c585e; --ink-3:#7c8991;
+  --line:#dbe3e6; --line-2:#c4d0d5; --grid:#e4eaec;
+  --accent:#b8185c; --accent-2:#fbe6ee; --accent-ink:#8d1246;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+  --no2:#b1502e; --water:#3d8fbf; --leaf:#2f7d4f; --carbon:#3b4449;
+  --shadow:0 1px 2px rgba(16,22,26,.06),0 6px 18px rgba(16,22,26,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#0a0e10; --surface:#151b1e; --surface-2:#1b2327; --sunk:#10161a;
+  --ink:#eef3f5; --ink-2:#a7b4ba; --ink-3:#7e8b92;
+  --line:#253034; --line-2:#334147; --grid:#222c30;
+  --accent:#f0689c; --accent-2:#341020; --accent-ink:#f9a8c4;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --no2:#d4703f; --water:#5aa9d6; --leaf:#4a9e69; --carbon:#8d9aa1;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"]{
+  --page:#0a0e10; --surface:#151b1e; --surface-2:#1b2327; --sunk:#10161a;
+  --ink:#eef3f5; --ink-2:#a7b4ba; --ink-3:#7e8b92;
+  --line:#253034; --line-2:#334147; --grid:#222c30;
+  --accent:#f0689c; --accent-2:#341020; --accent-ink:#f9a8c4;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --no2:#d4703f; --water:#5aa9d6; --leaf:#4a9e69; --carbon:#8d9aa1;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--ink);
+  font-family:"Noto Sans KR",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:13px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:700;letter-spacing:-.01em}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.wrap{max-width:1580px;margin:0 auto;padding-inline:16px;padding-block:0 40px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;
+  background:color-mix(in srgb,var(--page) 88%,transparent);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);margin-inline:-16px;padding:10px 16px}
+.topbar-in{max-width:1580px;margin:0 auto;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.brand h1{font-size:15px}
+.brand .sub{font-size:11px;color:var(--ink-3)}
+.spacer{flex:1 1 auto;min-width:0}
+.transport{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line-2);background:var(--surface);border-radius:7px;padding:6px 12px;
+  cursor:pointer;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;
+  transition:background .12s,border-color .12s}
+.btn:hover{background:var(--surface-2);border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:6px 10px;cursor:pointer;font-size:11.5px;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+.clock{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.phase-pill{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border-radius:999px;
+  background:var(--accent-2);color:var(--accent-ink);font-size:11.5px;font-weight:700;
+  border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);white-space:nowrap}
+.phase-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+.console{display:grid;grid-template-columns:304px minmax(0,1fr) 352px;gap:14px;margin-top:14px;align-items:start}
+@media (max-width:1340px){.console{grid-template-columns:292px minmax(0,1fr)}
+  .readouts{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}}
+@media (max-width:840px){.console{grid-template-columns:minmax(0,1fr)}.readouts{grid-template-columns:minmax(0,1fr)}}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+.panel+.panel{margin-top:14px}
+.panel-hd{display:flex;align-items:baseline;gap:8px;padding:11px 14px 9px;border-bottom:1px solid var(--line)}
+.panel-hd h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.panel-hd .note{font-size:10.5px;color:var(--ink-3);margin-left:auto;white-space:nowrap}
+.panel-bd{padding:12px 14px 14px}
+
+/* ── 탭 ── */
+.tabs{display:flex;gap:2px;padding:8px 8px 0;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:1px solid transparent;border-bottom:0;background:transparent;cursor:pointer;
+  padding:7px 11px;font-size:11.5px;font-weight:600;color:var(--ink-3);border-radius:7px 7px 0 0;white-space:nowrap}
+.tabs button:hover{color:var(--ink-2);background:var(--surface-2)}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--accent-ink);
+  box-shadow:0 1px 0 0 var(--surface);margin-bottom:-1px}
+.pane[hidden]{display:none}
+
+.grp{border-top:1px solid var(--line);padding-top:11px;margin-top:11px}
+.grp:first-child{border-top:0;padding-top:0;margin-top:0}
+.grp-t{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:9px}
+.fld{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:baseline;margin-bottom:9px}
+.fld:last-child{margin-bottom:0}
+.fld label{font-size:11.5px;color:var(--ink-2)}
+.fld .val{font-size:12px;font-weight:600;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.fld input[type=range]{grid-column:1/-1;width:100%;margin:2px 0 0;accent-color:var(--accent);height:16px}
+.fld .hint{grid-column:1/-1;font-size:10px;color:var(--ink-3);margin-top:-1px;line-height:1.45}
+.fld select{grid-column:1/-1;width:100%;padding:5px 7px;border:1px solid var(--line-2);
+  border-radius:6px;background:var(--surface-2);font-size:12px}
+.duo2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.derived{background:var(--sunk);border-radius:7px;padding:8px 10px;font-size:11px;display:grid;gap:4px}
+.derived div{display:flex;justify-content:space-between;gap:10px}
+.derived b{font-family:"IBM Plex Mono",monospace;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ── 식물 혼합 ── */
+.mixbar{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--sunk);margin-bottom:4px}
+.mixbar span{transition:width .18s ease;min-width:0}
+.mixnote{font-size:10px;color:var(--ink-3);margin-bottom:10px;display:flex;justify-content:space-between}
+.sp{padding:8px 0;border-top:1px solid var(--line)}
+.sp:first-of-type{border-top:0}
+.sp-top{display:flex;align-items:center;gap:7px;cursor:pointer}
+.sp input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;margin:0;flex:none}
+.sp .sw{width:4px;height:15px;border-radius:2px;flex:none}
+.sp .nm{font-size:12px;font-weight:600;line-height:1.3}
+.sp .ev{font-size:9px;font-weight:700;letter-spacing:.02em;padding:1px 5px;border-radius:999px;
+  background:var(--accent-2);color:var(--accent-ink);white-space:nowrap}
+.sp .pct{margin-left:auto;font-size:13px;font-weight:700;font-family:"IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+.sp .sci{font-size:9.5px;color:var(--ink-3);font-style:italic;line-height:1.3;margin:1px 0 0 26px}
+.sp input[type=range]{display:block;width:100%;margin:4px 0 0;height:14px}
+.sp.off{opacity:.42}
+.sp.off .ev{background:var(--sunk);color:var(--ink-3)}
+.sp input[type=range]:disabled{opacity:.5;pointer-events:none}
+
+/* ── 스테이지 ── */
+.viewbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 0 10px}
+.chip{border:1px solid var(--line-2);background:var(--surface-2);border-radius:999px;padding:4px 10px;
+  font-size:11px;cursor:pointer;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.stage-wrap{position:relative;background:var(--sunk);border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+#scene{display:block;width:100%;height:auto;aspect-ratio:1000/600;max-width:100%}
+.cbar{display:flex;align-items:center;gap:9px;padding:10px 2px 0;font-size:10.5px;color:var(--ink-2);flex-wrap:wrap}
+.cbar .ramp{height:11px;flex:1 1 160px;min-width:120px;border-radius:3px;border:1px solid var(--line-2)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;padding:8px 0 0;font-size:10.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+
+/* ── 리드아웃 ── */
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border-radius:8px;overflow:hidden}
+.tile{background:var(--surface);padding:10px 12px 11px}
+.tile .k{font-size:10px;letter-spacing:.05em;color:var(--ink-3);text-transform:uppercase;display:flex;align-items:center;gap:5px}
+.tile .k i{width:8px;height:8px;border-radius:2px;flex:none}
+.tile .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:600;letter-spacing:-.025em;line-height:1.15;margin-top:2px}
+.tile .v small{font-size:11px;font-weight:500;color:var(--ink-3);margin-left:3px}
+.tile .d{font-size:10.5px;color:var(--ink-3);margin-top:1px}
+.tile.hero{padding:12px 12px 13px}
+.tile.hero .k{font-size:10.5px;font-weight:700;color:var(--ink-2)}
+.tile.hero .v{font-size:36px;font-weight:700;letter-spacing:-.035em}
+.tile.hero .v small{font-size:13px;font-weight:600}
+.chart-card{padding:11px 12px 6px}
+.chart-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.chart-hd h3{font-size:11.5px;font-weight:700;color:var(--ink-2)}
+.chart-hd .u{font-size:10px;color:var(--ink-3)}
+.chart-hd .tbtn{margin-left:auto;border:1px solid var(--line-2);background:var(--surface-2);
+  border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer;color:var(--ink-2)}
+.chart-hd .tbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.cwrap{position:relative}
+.cwrap canvas{display:block;width:100%;height:auto}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line-2);
+  border-radius:6px;padding:6px 8px;font-size:10.5px;box-shadow:var(--shadow);z-index:5;
+  min-width:120px;transform:translate(-50%,0);white-space:nowrap}
+.tip .tt{font-weight:700;margin-bottom:3px;font-family:"IBM Plex Mono",monospace}
+.tip .tr{display:flex;align-items:center;gap:6px}
+.tip .tr i{width:8px;height:8px;border-radius:2px;flex:none}
+.tip .tr b{font-family:"IBM Plex Mono",monospace;font-weight:600;font-variant-numeric:tabular-nums;margin-left:auto}
+.leg{display:flex;flex-wrap:wrap;gap:3px 13px;font-size:10.5px;color:var(--ink-2);padding:2px 0 8px}
+.leg span{display:inline-flex;align-items:center;gap:5px}
+.leg i{width:10px;height:3px;border-radius:2px;flex:none}
+.leg i.sq{height:9px;width:9px}
+table.dt{width:100%;border-collapse:collapse;font-size:10.5px;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+table.dt th{text-align:right;font-weight:600;color:var(--ink-3);padding:3px 5px;border-bottom:1px solid var(--line-2);position:sticky;top:0;background:var(--surface)}
+table.dt th:first-child,table.dt td:first-child{text-align:left}
+table.dt td{padding:2.5px 5px;border-bottom:1px solid var(--grid)}
+.tscroll{max-height:186px;overflow:auto;border-radius:6px}
+
+.tl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border-radius:8px;overflow:hidden}
+.tl-seg{background:var(--surface-2);padding:9px 11px;transition:background .2s}
+.tl-seg.active{background:var(--accent-2)}
+.tl-seg .t{font-size:10px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
+.tl-seg .n{font-size:11.5px;font-weight:700;margin-top:1px;line-height:1.3}
+.tl-seg .d{font-size:10px;color:var(--ink-2);margin-top:2px;line-height:1.4}
+.tl-seg.active .n{color:var(--accent-ink)}
+.tl-bar{height:5px;background:var(--sunk);border-radius:3px;margin-top:9px;overflow:hidden}
+.tl-bar .fill{height:100%;background:var(--accent);border-radius:3px;width:0}
+@media (max-width:900px){.tl{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.duo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;margin-top:14px;align-items:start}
+@media (max-width:1000px){.duo{grid-template-columns:minmax(0,1fr)}}
+.kv{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:11.5px;align-items:baseline}
+.kv dt{color:var(--ink-2)}
+.kv dd{margin:0;font-family:"IBM Plex Mono",monospace;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.kv .sep{grid-column:1/-1;border-top:1px solid var(--line);margin:4px 0 1px}
+.flag{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:7px;font-size:11px;
+  line-height:1.5;margin-top:10px;border:1px solid}
+.flag .ic{font-weight:700;flex:none;line-height:1.5}
+.flag.ok{background:color-mix(in srgb,var(--good) 8%,transparent);border-color:color-mix(in srgb,var(--good) 32%,transparent)}
+.flag.ok .ic{color:var(--good)}
+.flag.warn{background:color-mix(in srgb,var(--warn) 12%,transparent);border-color:color-mix(in srgb,var(--warn) 42%,transparent)}
+.flag.warn .ic{color:#9a6b00}
+.flag.crit{background:color-mix(in srgb,var(--crit) 9%,transparent);border-color:color-mix(in srgb,var(--crit) 34%,transparent)}
+.flag.crit .ic{color:var(--crit)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .flag.warn .ic{color:var(--warn)}}
+:root[data-theme="dark"] .flag.warn .ic{color:var(--warn)}
+.bars{display:grid;gap:8px}
+.bar-row{display:grid;grid-template-columns:76px minmax(0,1fr) 72px;gap:9px;align-items:center;font-size:11px}
+.bar-row .track{height:16px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.bar-row .fill{height:100%;border-radius:4px}
+.bar-row .amt{text-align:right;font-family:"IBM Plex Mono",monospace;font-weight:600;font-variant-numeric:tabular-nums}
+
+details.doc{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+details.doc>summary{padding:11px 14px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ink-2);list-style:none;display:flex;align-items:center;gap:8px}
+details.doc>summary::-webkit-details-marker{display:none}
+details.doc>summary::before{content:"▸";color:var(--accent);font-size:11px;transition:transform .15s}
+details.doc[open]>summary::before{transform:rotate(90deg)}
+.doc-bd{padding:2px 16px 16px;font-size:11.5px;line-height:1.7;color:var(--ink-2)}
+.doc-bd h4{font-size:11.5px;color:var(--ink);margin:14px 0 5px;font-weight:700}
+.doc-bd p{margin:0 0 8px}
+.doc-bd ul{margin:0 0 8px;padding-left:17px}
+.doc-bd li{margin-bottom:3px}
+.doc-bd code,.eq{font-family:"IBM Plex Mono",monospace;font-size:11px;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.eq{display:block;padding:9px 12px;margin:7px 0 10px;white-space:pre;overflow-x:auto;line-height:1.7;color:var(--ink)}
+.doc-bd a{color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
+.tblwrap{overflow-x:auto;margin:8px 0 12px}
+table.ref{border-collapse:collapse;font-size:10.5px;min-width:520px;width:100%}
+table.ref th{text-align:left;font-weight:700;color:var(--ink);padding:5px 9px;border-bottom:1.5px solid var(--line-2);white-space:nowrap}
+table.ref td{padding:4px 9px;border-bottom:1px solid var(--grid);vertical-align:top}
+table.ref td.n{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+.foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-size:10.5px;color:var(--ink-3);line-height:1.7}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-in">
+  <div class="brand">
+    <h1>Lab 단위 식생바이오필터 NO₂ 제거 시뮬레이터</h1>
+    <div class="sub">AHU 연계 IAQ 챔버 · 직렬 무우회 필터 · 가역 흡착/재방출 · 코코 코이어 NO₂⁻ 정량 연동</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="transport">
+    <span class="phase-pill"><span class="dot"></span><span id="phaseName">관수 예비</span></span>
+    <span class="clock mono" id="clock">−05:00</span>
+    <div class="seg" role="group" aria-label="재생 속도">
+      <button type="button" data-speed="1" aria-pressed="false">1×</button>
+      <button type="button" data-speed="5" aria-pressed="false">5×</button>
+      <button type="button" data-speed="10" aria-pressed="true">10×</button>
+      <button type="button" data-speed="50" aria-pressed="false">50×</button>
+    </div>
+    <button type="button" class="btn primary" id="playBtn">▶ 시작</button>
+    <button type="button" class="btn" id="resetBtn">↺ 리셋</button>
+  </div>
+</div></div>
+
+<div class="wrap">
+<div id="errBar" hidden style="margin-top:12px;padding:9px 12px;border-radius:8px;font-size:11.5px;
+  background:color-mix(in srgb,var(--crit) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--crit) 40%,transparent);color:var(--ink)"></div>
+<div class="console">
+
+<!-- ═══ 조건 패널 (탭) ═══ -->
+<aside>
+<section class="panel">
+  <div class="tabs" role="tablist" id="tabs">
+    <button type="button" role="tab" data-tab="inj" aria-selected="true">주입·시간</button>
+    <button type="button" role="tab" data-tab="plant" aria-selected="false">식물</button>
+    <button type="button" role="tab" data-tab="env" aria-selected="false">환경·관수</button>
+    <button type="button" role="tab" data-tab="filt" aria-selected="false">필터</button>
+    <button type="button" role="tab" data-tab="adv" aria-selected="false">고급</button>
+  </div>
+
+  <div class="panel-bd pane" id="pane-inj">
+    <div class="grp"><div class="grp-t">NO₂ 주입</div>
+      <div class="fld"><label for="cyl">표준가스 농도</label><span class="val" id="cylV"></span>
+        <input type="range" id="cyl" min="50" max="1000" step="0.1" value="497.8"></div>
+      <div class="fld"><label for="mfc">MFC 유량</label><span class="val" id="mfcV"></span>
+        <input type="range" id="mfc" min="1" max="30" step="0.5" value="10"></div>
+      <div class="fld"><label for="tinj">주입 시간</label><span class="val" id="tinjV"></span>
+        <input type="range" id="tinj" min="5" max="300" step="1" value="40"></div>
+      <div class="derived">
+        <div><span>주입 가스량</span><b id="dInjVol"></b></div>
+        <div><span>챔버 목표 농도</span><b id="dTarget"></b></div>
+        <div><span>질량 농도 환산</span><b id="dMass"></b></div>
+      </div>
+    </div>
+    <div class="grp"><div class="grp-t">실험 시간</div>
+      <div class="fld"><label for="monMin">모니터링 시간</label><span class="val" id="monMinV"></span>
+        <input type="range" id="monMin" min="10" max="240" step="5" value="60">
+        <span class="hint">NO₂ 주입 후 폐쇄 순환 모니터링 구간. 관수 종료 시점은 이 안에서 설정합니다. 실험 종료 후 환기는 다음 차수 이월 방지 목적이므로 모델에 포함하지 않습니다.</span></div>
+      <div class="derived">
+        <div><span>총 실험 길이</span><b id="dTotal"></b></div>
+        <div><span>종료 시점 잔류 농도</span><b id="dEndC"></b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-bd pane" id="pane-plant" hidden>
+    <div class="grp"><div class="grp-t">바이오필터 식재 구성</div>
+      <div class="mixbar" id="mixbar"></div>
+      <div class="mixnote"><span id="mixCount">1종</span><span>합계 100 %</span></div>
+      <div id="speciesList"></div>
+      <div class="derived" style="margin-top:10px">
+        <div><span>가중 엽면적</span><b id="dLeaf"></b></div>
+        <div><span>가중 침착속도</span><b id="dVd"></b></div>
+        <div><span>기공 흡수 기여</span><b id="dLamPlant"></b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-bd pane" id="pane-env" hidden>
+    <div class="grp"><div class="grp-t">환경 조건</div>
+      <div class="fld"><label for="temp">온도</label><span class="val" id="tempV"></span>
+        <input type="range" id="temp" min="10" max="32" step="0.5" value="19"></div>
+      <div class="fld"><label for="rh">상대습도</label><span class="val" id="rhV"></span>
+        <input type="range" id="rh" min="30" max="99" step="0.5" value="94.5"></div>
+      <div class="fld"><label for="lux">광량 (엽면)</label><span class="val" id="luxV"></span>
+        <input type="range" id="lux" min="0" max="3000" step="25" value="500">
+        <span class="hint">기공 개도 → NO₂ 기공 흡수 속도에 반영</span></div>
+    </div>
+    <div class="grp"><div class="grp-t">관수 조건</div>
+      <div class="fld"><label for="irrRate">관수 유량</label><span class="val" id="irrRateV"></span>
+        <input type="range" id="irrRate" min="0" max="5" step="0.1" value="2"></div>
+      <div class="fld"><label for="irrStop">관수 종료 시점</label><span class="val" id="irrStopV"></span>
+        <input type="range" id="irrStop" min="0" max="240" step="1" value="30">
+        <span class="hint">주입 5분 전 시작 · 종료 후 기질이 점진 건조하며 제거효율 하락</span></div>
+      <div class="derived">
+        <div><span>총 작동 시간</span><b id="dIrrDur"></b></div>
+        <div><span>총 관수량</span><b id="dIrrVol"></b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-bd pane" id="pane-filt" hidden>
+    <div class="grp"><div class="grp-t">모듈 구성 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-3)">451 × 951 / 모듈</span></div>
+      <div class="fld duo2" style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">
+        <div class="fld" style="margin:0"><label for="nmod">세로 적층 수</label><span class="val" id="nmodV"></span>
+          <input type="range" id="nmod" min="1" max="4" step="1" value="2"></div>
+        <div class="fld" style="margin:0"><label for="uface">면속도</label><span class="val" id="ufaceV"></span>
+          <input type="range" id="uface" min="0.01" max="0.30" step="0.005" value="0.05"></div>
+      </div>
+      <div class="fld"><span class="hint" style="grid-column:1/-1;margin:0">모듈을 <b>세로로 맞붙여 하나의 벽</b>을 이루고, 그 벽이 챔버 단면을 빈틈없이 차단합니다. 공기는 반드시 한 모듈의 4개 층을 <b>직렬로 통과</b>해야 후단에 도달합니다.</span></div>
+      <div class="fld"><label for="bypass">우회율 (bypass)</label><span class="val" id="bypassV"></span>
+        <input type="range" id="bypass" min="0" max="40" step="1" value="0">
+        <span class="hint">밀폐 구조이므로 기본 0 %. 실링 불량 검토 시에만 올리십시오.</span></div>
+    </div>
+    <div class="grp"><div class="grp-t">층 구성 (기류 통과 순서 · 직렬)</div>
+      <div class="fld"><label for="tcarbF">① 전면 Carbon</label><span class="val" id="tcarbFV"></span>
+        <input type="range" id="tcarbF" min="0" max="40" step="1" value="10"></div>
+      <div class="fld"><label for="tcoir">② CoCo Coir 배지</label><span class="val" id="tcoirV"></span>
+        <input type="range" id="tcoir" min="5" max="60" step="1" value="10"></div>
+      <div class="fld"><label for="tcarbR">③④ 후면 Carbon ×2</label><span class="val" id="tcarbRV"></span>
+        <input type="range" id="tcarbR" min="0" max="40" step="1" value="5"></div>
+      <div class="derived">
+        <div><span>총 여재 단면적</span><b id="dArea"></b></div>
+        <div><span>단일통과 효율 SPRE (습윤)</span><b id="dSPRE"></b></div>
+        <div><span>통과 풍량 Q<sub>f</sub></span><b id="dQf"></b></div>
+        <div><span>CADR</span><b id="dCADR"></b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-bd pane" id="pane-adv" hidden>
+    <div class="grp"><div class="grp-t">매질 반응속도</div>
+      <div class="fld"><label for="kcoir">코이어 k<sub>v</sub> (습윤)</label><span class="val" id="kcoirV"></span>
+        <input type="range" id="kcoir" min="0.005" max="0.5" step="0.001" value="0.081"></div>
+      <div class="fld"><label for="kcarb">Carbon k<sub>v</sub> (신품)</label><span class="val" id="kcarbV"></span>
+        <input type="range" id="kcarb" min="0.005" max="0.5" step="0.001" value="0.055"></div>
+      <div class="fld"><label for="thetaRes">무관수 잔류 습윤도</label><span class="val" id="thetaResV"></span>
+        <input type="range" id="thetaRes" min="-1" max="100" step="1" value="-1">
+        <span class="hint">−1 = RH로부터 자동 산정 · τ<sub>건조</sub> 20 min</span></div>
+    </div>
+    <div class="grp"><div class="grp-t">가역 흡착 · 재방출 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-3)">정화율 상한을 결정</span></div>
+      <div class="fld"><label for="vsurf">챔버 표면 흡착속도</label><span class="val" id="vsurfV"></span>
+        <input type="range" id="vsurf" min="0" max="0.02" step="0.0002" value="0.003"></div>
+      <div class="fld"><label for="tauDes">표면 탈착 시정수 τ<sub>des</sub></label><span class="val" id="tauDesV"></span>
+        <input type="range" id="tauDes" min="5" max="600" step="5" value="90">
+        <span class="hint">벽면에 흡착된 NO₂가 되돌아 나오는 속도. 짧을수록 잔류 농도(꼬리)가 높아집니다.</span></div>
+      <div class="fld"><label for="reem">매질 재방출 분율</label><span class="val" id="reemV"></span>
+        <input type="range" id="reem" min="0" max="50" step="1" value="12">
+        <span class="hint">습윤 코이어에서 HONO 등으로 되돌아 나오는 비율. τ<sub>reem</sub> 60 min 고정.</span></div>
+      <div class="fld"><label for="lod">Serinus 40 검출한계</label><span class="val" id="lodV"></span>
+        <input type="range" id="lod" min="0" max="0.005" step="0.0002" value="0.0004"></div>
+    </div>
+    <div class="grp"><div class="grp-t">챔버</div>
+      <div class="fld"><label for="vol">챔버 체적</label><span class="val" id="volV"></span>
+        <input type="range" id="vol" min="1" max="20" step="0.1" value="5.6"></div>
+      <div class="fld"><label for="bg">실험 전 배경 NO₂</label><span class="val" id="bgV"></span>
+        <input type="range" id="bg" min="0" max="0.1" step="0.002" value="0.02"></div>
+    </div>
+    <div class="grp"><div class="grp-t">아질산염 전환 · 분석</div>
+      <div class="fld"><label for="yield">NO₂ → NO₂⁻ 전환수율 Y</label><span class="val" id="yieldV"></span>
+        <input type="range" id="yield" min="0" max="1" step="0.01" value="0.40">
+        <span class="hint">2NO₂ + H₂O → NO₂⁻ + NO₃⁻ + 2H⁺ (이론 상한 0.50)</span></div>
+      <div class="fld"><label for="leach">관수 용탈 손실 (30 min)</label><span class="val" id="leachV"></span>
+        <input type="range" id="leach" min="0" max="80" step="1" value="30"></div>
+      <div class="fld"><label for="rho">코이어 건조 밀도</label><span class="val" id="rhoV"></span>
+        <input type="range" id="rho" min="50" max="250" step="5" value="110"></div>
+      <div class="fld"><label for="basis">샘플 칭량 기준</label>
+        <select id="basis"><option value="wet" selected>습윤 기준</option><option value="dry">건조 기준</option></select></div>
+      <div class="fld"><label for="wc">함수율 (g 물/g 건조)</label><span class="val" id="wcV"></span>
+        <input type="range" id="wc" min="0" max="12" step="0.1" value="6"></div>
+      <div class="fld"><label for="smass">샘플 질량</label><span class="val" id="smassV"></span>
+        <input type="range" id="smass" min="10" max="200" step="5" value="50"></div>
+      <div class="fld"><label for="evol">추출 용액 (0.025 M CaCl₂)</label><span class="val" id="evolV"></span>
+        <input type="range" id="evol" min="25" max="300" step="5" value="100"></div>
+      <div class="fld"><label for="eeff">추출 효율</label><span class="val" id="eeffV"></span>
+        <input type="range" id="eeff" min="40" max="100" step="1" value="90"></div>
+      <div class="fld"><label for="bgno2">코이어 배경 NO₂⁻</label><span class="val" id="bgno2V"></span>
+        <input type="range" id="bgno2" min="0" max="0.02" step="0.0002" value="0.002"></div>
+      <div class="fld"><label for="eps">몰흡광계수 ε<sub>548</sub></label><span class="val" id="epsV"></span>
+        <input type="range" id="eps" min="30000" max="60000" step="500" value="46000"></div>
+    </div>
+  </div>
+</section>
+</aside>
+
+<!-- ═══ 스테이지 ═══ -->
+<section>
+  <div class="panel">
+    <div class="panel-hd"><h2>기류·농도장 가시화</h2><span class="note" id="sceneNote"></span></div>
+    <div class="panel-bd" style="padding:12px">
+      <div class="viewbar">
+        <div class="seg" role="group" aria-label="장 표시">
+          <button type="button" data-field="conc" aria-pressed="true">농도장</button>
+          <button type="button" data-field="vel" aria-pressed="false">속도장</button>
+          <button type="button" data-field="vort" aria-pressed="false">와도장</button>
+        </div>
+        <button type="button" class="chip" data-ov="stream" aria-pressed="true">유선</button>
+        <button type="button" class="chip" data-ov="vec" aria-pressed="false">속도벡터</button>
+        <button type="button" class="chip" data-ov="part" aria-pressed="true">입자 추적</button>
+        <button type="button" class="chip" data-ov="grid" aria-pressed="false">격자</button>
+        <button type="button" class="chip" data-ov="boost" aria-pressed="true">대비 강조</button>
+      </div>
+      <div class="stage-wrap"><canvas id="scene" width="1000" height="600"></canvas></div>
+      <div class="cbar">
+        <span id="cbarLo" class="mono">0</span>
+        <div class="ramp" id="cbarRamp"></div>
+        <span id="cbarHi" class="mono"></span>
+        <span id="cbarUnit" style="color:var(--ink-3)"></span>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--leaf)"></i>식재부 (기공 흡수)</span>
+        <span><i style="background:var(--s2)"></i>CoCo Coir 배지</span>
+        <span><i style="background:var(--carbon)"></i>Carbon filter</span>
+        <span><i style="background:var(--water)"></i>관수</span>
+        <span><i style="background:var(--accent)"></i>코이어 내 NO₂⁻ 축적</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-hd"><h2>실험 프로토콜 타임라인</h2><span class="note" id="tlNote"></span></div>
+    <div class="panel-bd">
+      <div class="tl" id="timeline"></div>
+      <div class="tl-bar"><div class="fill" id="tlFill"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 리드아웃 ═══ -->
+<aside class="readouts">
+  <section class="panel">
+    <div class="panel-hd"><h2>실시간 분석</h2><span class="note">Serinus 40 · 2 s logging</span></div>
+    <div class="panel-bd" style="padding:0"><div class="tiles">
+      <div class="tile hero"><div class="k"><i style="background:var(--s1)"></i>전단 NO₂</div>
+        <div class="v" id="tUp"></div><div class="d">필터 상류 · 챔버 벌크</div></div>
+      <div class="tile hero"><div class="k"><i style="background:var(--s3)"></i>후단 NO₂</div>
+        <div class="v" id="tDown"></div><div class="d" id="tDownMass"></div></div>
+      <div class="tile"><div class="k">누적 제거율</div>
+        <div class="v" id="tEff"></div><div class="d" id="tEffD"></div></div>
+      <div class="tile"><div class="k"><i style="background:var(--s2)"></i>대조 (무처리)</div>
+        <div class="v" id="tCtrl"></div><div class="d">가역 흡착만 적용</div></div>
+      <div class="tile"><div class="k">단일통과 효율</div>
+        <div class="v" id="tSpre"></div><div class="d" id="tTheta"></div></div>
+      <div class="tile"><div class="k">감쇠상수 k</div>
+        <div class="v" id="tLam"></div><div class="d" id="tHalf"></div></div>
+      <div class="tile"><div class="k">달성 가능 최대 제거율</div>
+        <div class="v" id="tMaxEff"></div><div class="d" id="tFloor"></div></div>
+      <div class="tile"><div class="k">벽면 흡착 잔여량</div>
+        <div class="v" id="tWall"></div><div class="d" id="tWallD"></div></div>
+    </div></div>
+  </section>
+
+  <section class="panel"><div class="panel-bd chart-card">
+    <div class="chart-hd"><h3>NO₂ 시계열</h3><span class="u">ppm</span>
+      <button type="button" class="tbtn" id="tsTableBtn" aria-pressed="false">표</button></div>
+    <div class="leg">
+      <span><i style="background:var(--s1)"></i>전단</span>
+      <span><i style="background:var(--s3)"></i>후단</span>
+      <span><i style="background:var(--s2)"></i>대조 (무처리)</span>
+    </div>
+    <div class="cwrap" id="tsWrap"><canvas id="tsChart" width="660" height="290"></canvas></div>
+    <div class="tscroll" id="tsTable" hidden></div>
+  </div></section>
+
+  <section class="panel"><div class="panel-bd chart-card">
+    <div class="chart-hd"><h3>누적 제거 기여도</h3><span class="u">µmol NO₂</span></div>
+    <div class="leg">
+      <span><i class="sq" style="background:var(--s1)"></i>식물 기공</span>
+      <span><i class="sq" style="background:var(--s2)"></i>코코 코이어</span>
+      <span><i class="sq" style="background:var(--s3)"></i>Carbon filter</span>
+      <span><i class="sq" style="background:var(--s4)"></i>챔버 표면 (가역)</span>
+    </div>
+    <div class="cwrap" id="ctWrap"><canvas id="ctChart" width="660" height="230"></canvas></div>
+  </div></section>
+</aside>
+</div>
+
+<div class="duo">
+  <section class="panel">
+    <div class="panel-hd"><h2>실험 2 · Griess 정량 예측</h2><span class="note">548 nm · 50 mm cell</span></div>
+    <div class="panel-bd">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:16px" id="griessGrid">
+        <div class="cwrap" id="stdWrap"><canvas id="stdChart" width="620" height="290"></canvas></div>
+        <div><dl class="kv">
+          <dt>코이어 내 NO₂⁻</dt><dd id="gCoir"></dd>
+          <dt>추출액 농도</dt><dd id="gExt"></dd>
+          <dt class="sep"></dt>
+          <dt>대조구 A·B</dt><dd id="gCtrl"></dd>
+          <dt>실험구 C·D</dt><dd id="gExp"></dd>
+          <dt>Δ (C,D − A,B)</dt><dd id="gDelta"></dd>
+          <dt class="sep"></dt>
+          <dt>A<sub>548</sub> 대조</dt><dd id="gAbsC"></dd>
+          <dt>A<sub>548</sub> 실험</dt><dd id="gAbsE"></dd>
+          <dt>ΔA<sub>548</sub></dt><dd id="gAbsD"></dd>
+        </dl></div>
+      </div>
+      <div class="leg" style="padding-top:8px">
+        <span><i style="background:var(--s1)"></i>표준곡선 (0–5 µM)</span>
+        <span><i class="sq" style="background:var(--s2)"></i>대조구 A·B</span>
+        <span><i class="sq" style="background:var(--s3)"></i>실험구 C·D</span>
+      </div>
+      <div id="gFlags"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-hd"><h2>폐 세포 노출량</h2><span class="note">Bio-filter sample → NU-5810E</span></div>
+    <div class="panel-bd">
+      <div class="bars">
+        <div class="bar-row"><span>대조 (무처리)</span>
+          <div class="track"><div class="fill" id="bCtrl" style="background:var(--s2);width:0"></div></div>
+          <span class="amt" id="aCtrl"></span></div>
+        <div class="bar-row"><span>바이오필터</span>
+          <div class="track"><div class="fill" id="bTreat" style="background:var(--s3);width:0"></div></div>
+          <span class="amt" id="aTreat"></span></div>
+      </div>
+      <dl class="kv" style="margin-top:13px">
+        <dt>누적 노출 저감률</dt><dd id="xRed"></dd>
+        <dt>최고 농도 (처리 / 대조)</dt><dd id="xPeak"></dd>
+        <dt class="sep"></dt>
+        <dt>WHO 1시간 지침 초과시간 (처리)</dt><dd id="xWhoT"></dd>
+        <dt>WHO 1시간 지침 초과시간 (대조)</dt><dd id="xWhoC"></dd>
+        <dt>모니터링 구간 평균 (처리)</dt><dd id="xAvg"></dd>
+      </dl>
+      <div class="flag ok"><span class="ic">i</span><span>WHO NO₂ 1시간 지침 200 µg/m³(<span class="mono">≈0.104 ppm</span> @19 °C) 기준. 노출량은 챔버 벌크 농도를 샘플 라인이 그대로 전달한다고 가정한 값입니다.</span></div>
+    </div>
+  </section>
+</div>
+
+<details class="doc" open>
+  <summary>계산 모델 · 근거 · 계획서 정합성 점검</summary>
+  <div class="doc-bd" id="docBody"></div>
+</details>
+
+<div class="foot">
+  입력 근거: <b>★2512 실험계획서</b> (Lab 단위 식생바이오필터 NO₂ 제거에 따른 코코 코이어 내 아질산염 분석, 상명대학교 그린스마트학과 김예진) 및 <b>챔버 구성도 v1.1</b> (AHU · IAQ 챔버 · Flow Nozzle Chamber · Serinus 40 ×2 · Kofloc MFC · NU-5810E 인큐베이터).
+  본 도구는 <b>설계 검토용 예측 모델</b>이며 실측을 대체하지 않습니다.
+</div>
+</div>
+
+<script>
+/* ══ 1. 상수 · 종 파라미터 ══════════════════════════════════════ */
+/* ev: 'NO₂ 직접' = 해당 종으로 NO₂ 챔버 제거 실험이 보고된 종.
+   그 외는 실내 공기정화 성능 상위 보고 종(포름알데히드·VOC·증산 기준)으로,
+   NO₂ 성능의 직접 근거는 아니므로 등급을 구분해 표시한다. */
+const SPECIES = [
+  {id:'pothos', nm:'스킨답서스', sci:'Epipremnum aureum',               vd:0.32, leaf:1.10, d:0.72, on:true,  w:100, c:'--s1', ev:'생물여과 다수', note:'기공밀도 높음·얇은 큐티클·음지 적응. 생물여과 적용 사례 최다'},
+  {id:'massa',  nm:'맛상게아나', sci:"Dracaena fragrans 'Massangeana'", vd:0.38, leaf:0.85, d:0.60, on:false, w:0,   c:'--s2', ev:'NO₂ 직접', note:'Gubb 2022 NO₂ 3종 비교에서 최상위 (습윤 배지·500 lx)'},
+  {id:'ficus',  nm:'고무나무',   sci:'Ficus elastica',                  vd:0.18, leaf:0.70, d:0.48, on:false, w:0,   c:'--s3', ev:'저성능 대조', note:'두꺼운 왁스 큐티클·기공밀도 낮음 — 하한 대조군으로 유용'},
+  {id:'spath',  nm:'스파티필름', sci:'Spathiphyllum wallisii',          vd:0.34, leaf:0.95, d:0.75, on:false, w:0,   c:'--s4', ev:'NO₂ 직접', note:'Gubb 2022 · Pettit/Matheson 능동형 생물여과 표준 공시종'},
+  {id:'zamio',  nm:'금전수',     sci:'Zamioculcas zamiifolia',          vd:0.22, leaf:0.75, d:0.30, on:false, w:0,   c:'--s5', ev:'NO₂ 직접', note:'Gubb 2022 NO₂ 공시 3종 중 하나. 두꺼운 다육질 잎·CAM 유사'},
+  {id:'syngo',  nm:'싱고니움',   sci:'Syngonium podophyllum',           vd:0.30, leaf:1.00, d:0.70, on:false, w:0,   c:'--s6', ev:'NO₂ 직접', note:'Matheson 2025 NO₂·O₃ 생물여과 공시종. RDA 포름알데히드 소품 최상위'},
+  {id:'nephro', nm:'보스턴고사리',sci:'Nephrolepis exaltata',           vd:0.30, leaf:1.45, d:0.55, on:false, w:0,   c:'--s7', ev:'정화 상위', note:'엽면적 최대급 양치식물. RDA 포름알데히드 제거 상위'},
+  {id:'areca',  nm:'아레카야자', sci:'Dypsis lutescens',                vd:0.28, leaf:1.30, d:0.62, on:false, w:0,   c:'--s8', ev:'정화 상위', note:'증산량 최대급·엽면적 큼. NASA/RDA 종합 상위'},
+];
+const MOD_W=0.451, MOD_H=0.951, A_FACE=MOD_W*MOD_H;
+const A_SURF_REF=18.0, PRE_MIN=5, TAU_DRY=20, Q_MAX=8000;
+const TAU_REEM=60;                       // 매질 재방출 시정수 (min)
+const MW_NO2=46.0055;
+const STD_PTS=[0,0.5,1,2,3,5], ASSAY_DIL=0.1, WHO_UG=200;
+
+const P={}; let SIM=null;
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+
+/* ══ 2. 파라미터 ════════════════════════════════════════════════ */
+function readParams(){
+  const g=id=>parseFloat($(id).value);
+  P.cyl=g('cyl'); P.mfc=g('mfc'); P.tinj=g('tinj');
+  P.monMin=g('monMin');
+  P.T=g('temp'); P.rh=g('rh'); P.lux=g('lux');
+  P.irrRate=g('irrRate');
+  P.nmod=g('nmod'); P.uface=g('uface'); P.bypass=g('bypass')/100;
+  P.tcoir=g('tcoir'); P.tcarbF=g('tcarbF'); P.tcarbR=g('tcarbR');
+  P.kcoir=g('kcoir'); P.kcarb=g('kcarb'); P.thetaRes=g('thetaRes');
+  P.vsurf=g('vsurf'); P.tauDes=g('tauDes'); P.reem=g('reem')/100; P.lod=g('lod');
+  P.V=g('vol'); P.bg=g('bg');
+  P.Y=g('yield'); P.leach=g('leach'); P.rho=g('rho');
+  P.basis=$('basis').value; P.wc=g('wc'); P.smass=g('smass');
+  P.evol=g('evol'); P.eeff=g('eeff'); P.bgno2=g('bgno2'); P.eps=g('eps');
+
+  // 관수 종료는 모니터링 구간 안으로 제한
+  const irrEl=$('irrStop'); irrEl.max=P.monMin;
+  P.irrStop=clamp(parseFloat(irrEl.value),0,P.monMin); irrEl.value=P.irrStop;
+  P.TEND=P.monMin;                         // 환기 구간은 모델에서 제외
+
+  const on=SPECIES.filter(s=>s.on&&s.w>0);
+  const tot=on.reduce((a,s)=>a+s.w,0);
+  P.mix=on.map(s=>({s,x:tot>0?s.w/tot:0}));
+
+  P.Vm=22.414*(273.15+P.T)/273.15;
+  P.ppm2umol=P.V*1000/P.Vm;
+  P.ppm2ug=1e6*MW_NO2/P.Vm/1000;
+  P.whoPpm=WHO_UG/P.ppm2ug;
+  P.thetaR=P.thetaRes<0?clamp((P.rh-40)/60*0.55,0.05,0.60):P.thetaRes/100;
+  // 모듈을 세로로 맞붙여 하나의 벽을 이룸 → 여재 단면적이 적층 수만큼 커지고,
+  // 공기는 한 모듈의 4개 층을 직렬 통과한다.
+  P.Aface=A_FACE*P.nmod;
+  P.Qf=P.Aface*P.uface;
+  P.Asurf=A_SURF_REF*Math.pow(P.V/5.6,2/3);
+  P.fRH=clamp(0.7+0.6*(P.rh/100),0.7,1.4);
+  P.fT=Math.exp(0.035*(P.T-19));
+  P.kDes=1/(P.tauDes*60);      // s⁻¹
+  P.kReem=1/(TAU_REEM*60);
+}
+const fLight=(d,lux)=>{const f=x=>(1-d)+d*x/(x+150);return f(lux)/f(500);};
+
+function plantConductance(){
+  let G=0,leaf=0,vd=0;
+  for(const {s,x} of P.mix){
+    G+=x*s.leaf*(s.vd/1000)*fLight(s.d,P.lux);
+    leaf+=x*s.leaf; vd+=x*s.vd;
+  }
+  return {G:G*P.nmod*P.fRH*P.fT, leaf:leaf*P.nmod, vd};
+}
+
+/* 한 모듈 내 4개 층을 직렬 통과 → 단일통과 효율 */
+function layerEff(theta,load){
+  const u=P.uface;
+  const kc=P.kcoir*(0.25+0.75*theta), ka=P.kcarb*Math.max(0,1-load/Q_MAX);
+  const E=(Lmm,k)=>Lmm<=0?0:1-Math.exp(-k*(Lmm/1000)/u);
+  const eF=E(P.tcarbF,ka), eC=E(P.tcoir,kc), eR=E(P.tcarbR,ka);
+  // ① 전면 Carbon → ② CoCo Coir → ③④ 후면 Carbon ×2
+  let capA=0,capC=0,rem=1;
+  capA+=rem*eF; rem*=(1-eF);
+  capC+=rem*eC; rem*=(1-eC);
+  const pr=(1-eR)*(1-eR); capA+=rem*(1-pr); rem*=pr;
+  const spre=(1-rem)*(1-P.bypass);
+  const tc=capC+capA;
+  return {spre, eF, eC, eR,
+    shareCoir: tc>0?capC/tc:0, shareCarb: tc>0?capA/tc:0};
+}
+
+/* ══ 3. 시뮬레이션 ══════════════════════════════════════════════ */
+function simulate(){
+  const dt=1, t0=-PRE_MIN*60, t1=P.TEND*60;
+  const N=Math.round((t1-t0)/dt)+1;
+  const F=()=>new Float32Array(N);
+  const o={t:F(),cUp:F(),cDown:F(),cCtrl:F(),theta:F(),spre:F(),lam:F(),
+    cumP:F(),cumC:F(),cumA:F(),cumS:F(),no2m:F(),wall:F(),med:F(),
+    aucT:F(),aucC:F(),whoT:F(),whoC:F(),N};
+
+  const pc=plantConductance();
+  P.leafArea=pc.leaf; P.vdMix=pc.vd; P.lamPlant=pc.G/P.V;
+
+  const src0=(P.mfc/60)*P.cyl/(P.V*1000);
+  const kAds=(P.vsurf/100)*P.Asurf/P.V;
+  const kLeach=-Math.log(1-clamp(P.leach/100,0,0.95))/30;
+
+  // C: 처리 챔버, Cc: 대조 / Ms·Mc: 벽면 흡착 저장고 / Mm: 매질 가역 저장고
+  let C=P.bg, Cc=P.bg, Ms=0, Mc=0, Mm=0, load=0, nit=0;
+  let cP=0,cC=0,cA=0,cS=0,aT=0,aC=0,wT=0,wC=0;
+
+  for(let i=0;i<N;i++){
+    const t=t0+i*dt, min=t/60;
+    const irrOn=min<P.irrStop;
+    const theta=irrOn?1:P.thetaR+(1-P.thetaR)*Math.exp(-(min-P.irrStop)/TAU_DRY);
+    const L=layerEff(theta,load);
+    const lamMedia=P.Qf*L.spre/P.V;
+    const lamRem=lamMedia+P.lamPlant+kAds;        // 폐쇄 순환 — 환기 없음
+    const lamCtl=kAds;
+    const src=(t>=0&&t<P.tinj)?src0:0;
+    // 재방출 → 농도 증가원 (ppm/s)
+    const reSrc=(P.kDes*Ms+P.kReem*Mm)/P.ppm2umol;
+    const reCtl=(P.kDes*Mc)/P.ppm2umol;
+
+    o.t[i]=t; o.cUp[i]=Math.max(C,P.lod); o.cDown[i]=Math.max(C*(1-L.spre),P.lod);
+    o.cCtrl[i]=Math.max(Cc,P.lod); o.theta[i]=theta; o.spre[i]=L.spre;
+    o.lam[i]=lamRem*3600; o.wall[i]=Ms; o.med[i]=Mm;
+    o.cumP[i]=cP; o.cumC[i]=cC; o.cumA[i]=cA; o.cumS[i]=cS; o.no2m[i]=nit;
+    o.aucT[i]=aT; o.aucC[i]=aC; o.whoT[i]=wT; o.whoC[i]=wC;
+
+    const f=P.ppm2umol*dt;
+    const dP=P.lamPlant*C*f, dM=lamMedia*C*f, dS=kAds*C*f;
+    const dCoir=dM*L.shareCoir, dCarb=dM*L.shareCarb;
+    cP+=dP; cC+=dCoir; cA+=dCarb; cS+=dS;
+    load+=dCarb;
+    // 벽면·매질 저장고 수지
+    Ms+=dS-P.kDes*Ms*dt;
+    Mc+=kAds*Cc*f-P.kDes*Mc*dt;
+    Mm+=dCoir*P.reem-P.kReem*Mm*dt;
+    nit+=dCoir*(1-P.reem)*P.Y;
+    if(irrOn) nit*=Math.exp(-kLeach*dt/60);
+
+    if(t>=0){
+      aT+=C*dt/60; aC+=Cc*dt/60;
+      if(C>P.whoPpm) wT+=dt/60;
+      if(Cc>P.whoPpm) wC+=dt/60;
+    }
+    const step=(c,lam,s)=>{const tot=s+0; if(lam<=1e-12) return c+tot*dt;
+      const eq=tot/lam; return eq+(c-eq)*Math.exp(-lam*dt);};
+    C =Math.max(0,step(C ,lamRem,src+reSrc));
+    Cc=Math.max(0,step(Cc,lamCtl,src+reCtl));
+  }
+
+  const idx=m=>clamp(Math.round((m*60-t0)/dt),0,N-1);
+  let pk=0,pkc=0; for(let i=0;i<N;i++){ if(o.cUp[i]>pk)pk=o.cUp[i]; if(o.cCtrl[i]>pkc)pkc=o.cCtrl[i]; }
+  o.peak=pk; o.peakCtrl=pkc; o.iMon=N-1; o.t0=t0; o.dt=dt; o.load=load; o.nitrite=nit;
+  o.kAds=kAds*3600;
+  // 모니터링 종료 시점 잔류·최대 제거율
+  o.cEnd=o.cUp[o.iMon]; o.maxEff=pk>0?(1-o.cEnd/pk)*100:0;
+  o.cFinal=o.cUp[N-1];
+  // 폐쇄 순환 구간의 준평형 바닥농도 (재방출/제거 균형)
+  // 재방출원은 벽면 저장고 M_s와 매질 저장고 M_m 둘 다이므로 두 항을 모두 더한다.
+  // (M_m 항을 빼면 바닥농도가 체계적으로 과소평가된다 — v5까지의 오류)
+  const Lw=layerEff(P.thetaR,load);
+  const lamQ=P.Qf*Lw.spre/P.V+P.lamPlant+kAds;
+  o.floor=lamQ>0?(P.kDes*o.wall[o.iMon]+P.kReem*o.med[o.iMon])/(P.ppm2umol*lamQ):0;
+
+  const mCoir=(P.tcoir/1000)*A_FACE*P.nmod*P.rho*1000;
+  const cCoir=mCoir>0?nit/mCoir:0;
+  const dryMass=P.basis==='wet'?P.smass/(1+P.wc):P.smass;
+  const ext=n=>n*dryMass*(P.eeff/100)/(P.evol/1000);
+  o.mCoir=mCoir; o.cCoir=cCoir; o.dryMass=dryMass;
+  o.extExp=ext(cCoir+P.bgno2); o.extCtl=ext(P.bgno2);
+  o.absExp=P.eps*o.extExp*ASSAY_DIL*1e-6*5;
+  o.absCtl=P.eps*o.extCtl*ASSAY_DIL*1e-6*5;
+  o.absStd=STD_PTS.map(c=>P.eps*c*ASSAY_DIL*1e-6*5);
+  return o;
+}
+</script>
+<script>
+/* ══ 4. 유동 솔버 — Stable Fluids (이류·확산·압력투영) ═════════════
+   비압축 2D Navier–Stokes를 반음해적으로 적분합니다. 다공질 셀에는
+   Darcy 항력과 흡수 싱크를 부과하고, 스칼라장은 0-D 질량수지가 준
+   벌크 농도에 맞춰 정규화됩니다(정량값의 출처는 0-D 모델).        */
+const NX=128, NY=63, NN=NX*NY, IX=(i,j)=>i+j*NX;
+const FL={
+  u:new Float32Array(NN), v:new Float32Array(NN),
+  u0:new Float32Array(NN), v0:new Float32Array(NN),
+  dn:new Float32Array(NN), dn0:new Float32Array(NN),
+  p:new Float32Array(NN), dv:new Float32Array(NN),
+  solid:new Uint8Array(NN), drag:new Float32Array(NN),
+  sink:new Float32Array(NN), kind:new Uint8Array(NN), // 0 유체 1 carbon 2 coir 3 식재
+  fixed:new Uint8Array(NN),                           // 고체 + 속도지정 셀
+  lidx:new Uint8Array(NN),                            // 층 번호 0~3 (9 = 층 아님)
+  lrate:new Float32Array(NN),                         // 역체류시간 u/w  [1/s]
+  inlet:[20,43], ready:false
+};
+const PART=[]; let STREAM=[];
+
+/* 기하 구성 — 모듈을 세로로 맞붙여 하나의 벽을 이루고, 그 벽이 단면을 전부 차단.
+   공기는 한 모듈의 4개 층(①전면 Carbon → ②CoCo Coir → ③④후면 Carbon)을 직렬 통과한다. */
+function buildGeometry(){
+  FL.solid.fill(0); FL.drag.fill(0); FL.sink.fill(0); FL.kind.fill(0);
+  FL.lidx.fill(9); FL.lrate.fill(0);
+  const uIn=16+220*P.uface;                    // 격자 속도 (cells/s)
+  const layers=[{k:1,t:P.tcarbF,nm:'Carbon',e:'F'},{k:2,t:P.tcoir,nm:'CoCo Coir',e:'C'},
+                {k:1,t:P.tcarbR,nm:'Carbon',e:'R'},{k:1,t:P.tcarbR,nm:'Carbon',e:'R'}].filter(l=>l.t>0);
+  const tt=layers.reduce((a,l)=>a+l.t,0)||1;
+  const modCells=clamp(Math.round(20*Math.pow(tt/30,0.6)),10,34);
+  const x0=Math.round(0.34*NX);
+  for(let d=-3;d<0;d++){ const xi=x0+d; if(xi<1)continue;
+    for(let j=1;j<NY-1;j++){ FL.kind[IX(xi,j)]=3; FL.drag[IX(xi,j)]=0.8; } }
+  let x=x0; const bands=[];
+  layers.forEach((l,li)=>{
+    const w=Math.max(2,Math.round(modCells*l.t/tt));
+    for(let d=0;d<w;d++){ const xi=x+d; if(xi>=NX-2) return;
+      for(let j=1;j<NY-1;j++){ const k=IX(xi,j);
+        FL.kind[k]=l.k; FL.drag[k]=l.k===2?1.8:2.2;
+        FL.lidx[k]=li; FL.lrate[k]=1/w; } }     // 감쇠는 국소 유속 × 1/w 로 경로적분
+    bands.push({k:l.k,nm:l.nm,x0:x,w,li}); x+=w;
+  });
+  FL.wall={x0,x1:x,bands,plantX:x0-3};
+  FL.etag=layers.map(l=>l.e);
+  FL.effOf=L=>FL.etag.map(t=>t==='F'?L.eF:t==='C'?L.eC:L.eR);
+  FL.splits=Array.from({length:clamp(P.nmod,1,4)-1},(_,i)=>(i+1)/clamp(P.nmod,1,4));
+  // 상·하 벽 + 덕트 개구부 밖의 좌·우 벽 (개구부는 중앙 밴드뿐)
+  for(let i=0;i<NX;i++){ FL.solid[IX(i,0)]=1; FL.solid[IX(i,NY-1)]=1; }
+  for(let j=1;j<NY-1;j++){
+    if(j<FL.inlet[0]||j>FL.inlet[1]){ FL.solid[IX(0,j)]=1; FL.solid[IX(NX-1,j)]=1; }
+  }
+  // 압력 방정식에서 미러 처리할 셀: 고체 + 유입구(속도 지정)
+  FL.fixed.set(FL.solid);
+  for(let j=FL.inlet[0];j<=FL.inlet[1];j++){ FL.fixed[IX(0,j)]=1; FL.fixed[IX(1,j)]=1; }
+  FL.ready=true;
+}
+/* 경계조건 — 투영 전후로 반드시 다시 강제해야 유입 구동력이 유지된다 */
+function applyBC(){
+  const uIn=16+220*P.uface, [ja,jb]=FL.inlet;
+  for(let j=ja;j<=jb;j++){
+    FL.u[IX(0,j)]=uIn; FL.v[IX(0,j)]=0;
+    FL.u[IX(1,j)]=uIn; FL.v[IX(1,j)]=0;
+    const k=IX(NX-1,j); FL.u[k]=FL.u[k-1]; FL.v[k]=FL.v[k-1];   // 자유유출
+  }
+  for(let k=0;k<NN;k++) if(FL.solid[k]){ FL.u[k]=0; FL.v[k]=0; }
+}
+
+function advect(d,d0,uu,vv,dt){
+  for(let j=1;j<NY-1;j++) for(let i=1;i<NX-1;i++){
+    const k=IX(i,j);
+    if(FL.solid[k]){ d[k]=0; continue; }
+    let x=i-dt*uu[k], y=j-dt*vv[k];
+    x=clamp(x,0.5,NX-1.5); y=clamp(y,0.5,NY-1.5);
+    const i0=x|0, j0=y|0, s=x-i0, t=y-j0;
+    const a=d0[IX(i0,j0)], b=d0[IX(i0+1,j0)], c=d0[IX(i0,j0+1)], e=d0[IX(i0+1,j0+1)];
+    d[k]=(1-t)*((1-s)*a+s*b)+t*((1-s)*c+s*e);
+  }
+}
+/* 압력 투영 — Red-Black Gauss-Seidel + SOR.
+   Jacobi는 반복당 정보가 한 칸씩만 퍼져 128칸 폭에서 전역 질량보존에 실패한다.
+   fixed = 고체 또는 속도지정(유입구) 셀 → 압력 Neumann(미러), 속도 보정 제외.
+   출구 열은 갱신하지 않으므로 p=0 Dirichlet 이 되어 계가 잘 정의된다. */
+function project(uu,vv,iters){
+  const {p,dv,fixed}=FL, w=1.86;
+  for(let j=1;j<NY-1;j++) for(let i=1;i<NX-1;i++){
+    const k=IX(i,j);
+    dv[k]=fixed[k]?0:-0.5*(uu[k+1]-uu[k-1]+vv[k+NX]-vv[k-NX]);
+    p[k]=0;
+  }
+  for(let it=0;it<iters;it++)
+    for(let color=0;color<2;color++)
+      for(let j=1;j<NY-1;j++)
+        for(let i=1+((j+color)&1);i<NX-1;i+=2){
+          const k=IX(i,j); if(fixed[k]) continue;
+          const L=fixed[k-1]?p[k]:p[k-1], R=fixed[k+1]?p[k]:p[k+1];
+          const U=fixed[k-NX]?p[k]:p[k-NX], D=fixed[k+NX]?p[k]:p[k+NX];
+          p[k]+=w*((dv[k]+L+R+U+D)*0.25-p[k]);
+        }
+  for(let j=1;j<NY-1;j++) for(let i=1;i<NX-1;i++){
+    const k=IX(i,j);
+    if(FL.solid[k]){uu[k]=0;vv[k]=0;continue;}
+    if(fixed[k]) continue;
+    uu[k]-=0.5*((fixed[k+1]?p[k]:p[k+1])-(fixed[k-1]?p[k]:p[k-1]));
+    vv[k]-=0.5*((fixed[k+NX]?p[k]:p[k+NX])-(fixed[k-NX]?p[k]:p[k-NX]));
+  }
+}
+
+/* eff = [E①,E②,E③,E④] — 0-D 모델이 계산한 실제 층별 단일통과 효율.
+   층을 지나는 동안 농도가 정확히 (1−E)배가 되도록 셀 감쇠율을 역산한다.
+   이렇게 해야 화면의 공간 대비가 실제 제거율과 일치한다. */
+function fluidStep(dt, bulk, injecting, eff){
+  const {u,v,u0,v0,dn,dn0,drag,solid,lidx,lrate}=FL;
+  const [ja,jb]=FL.inlet;
+  applyBC();
+  for(let j=ja;j<=jb;j++){ dn[IX(0,j)]=injecting?1:bulk; dn[IX(1,j)]=injecting?1:bulk; }
+  for(let k=0;k<NN;k++) if(drag[k]>0){ const f=1/(1+drag[k]*dt); u[k]*=f; v[k]*=f; }
+  u0.set(u); v0.set(v);
+  advect(u,u0,u0,v0,dt); advect(v,v0,u0,v0,dt);
+  // 반라그랑주 이류는 수치 소산이 커서 질량 플럭스를 갉아먹는다.
+  // 직전 장과 혼합해 유효 CFL을 낮추면 관성은 남기고 소산만 줄일 수 있다.
+  for(let k=0;k<NN;k++){ u[k]=0.42*u[k]+0.58*u0[k]; v[k]=0.42*v[k]+0.58*v0[k]; }
+  applyBC();                       // 이류 후 유입 속도 복원
+  project(u,v,60);
+  applyBC();
+  dn0.set(dn);
+  advect(dn,dn0,u,v,dt);
+  // 층 감쇠를 국소 유속으로 경로적분하면 ∫rate·dt = −ln(1−E) 가 되어
+  // 유속에 관계없이 층 통과 후 농도가 정확히 (1−E)배가 된다.
+  const rate=[0,0,0,0];
+  if(eff) for(let n=0;n<4;n++) rate[n]=-Math.log(Math.max(1e-6,1-(eff[n]||0)));
+  for(let k=0;k<NN;k++){
+    const li=lidx[k];
+    if(li<4) dn[k]*=Math.exp(-rate[li]*Math.abs(u[k])*lrate[k]*dt);
+    else if(FL.kind[k]===3) dn[k]*=Math.exp(-0.12*dt*clamp(P.lamPlant/3e-4,0,2));
+  }
+  for(let j=1;j<NY-1;j++){ const k=IX(NX-1,j); if(!solid[k]) dn[k]=dn[k-1]; }
+  // 벌크 정규화 — 정량값은 0-D 모델이 결정.
+  // 게인을 좁게 제한해야 장이 비어 있을 때 유입구에서 가짜 플룸이 생기지 않는다.
+  let s=0,c=0;
+  for(let j=1;j<NY-1;j++) for(let i=1;i<NX-1;i++){ const k=IX(i,j); if(!solid[k]){ s+=dn[k]; c++; } }
+  const mean=c?s/c:0;
+  if(mean<1e-4||bulk<1e-4||mean>8*bulk||bulk>8*mean){ FL.dn.fill(bulk); }
+  else { const g=clamp(bulk/mean,0.88,1.14);
+    for(let k=0;k<NN;k++) dn[k]=clamp(dn[k]*g,0,1.6); }
+}
+function resetField(bulk){ FL.dn.fill(bulk); PART.forEach(seedParticle); }
+
+/* 입자 — 챔버 안은 유동장을 따라가고, 출구를 지나면 순환 덕트를 돌아 유입구로 복귀 */
+function seedParticle(p){
+  p.mode='field'; p.x=1.5+Math.random()*2.5;
+  p.y=FL.inlet[0]+Math.random()*(FL.inlet[1]-FL.inlet[0]); p.age=0; p.s=0;
+}
+function stepParticles(dt,count,ductSpeed){
+  while(PART.length<count){ const p={mode:'field',x:0,y:0,s:0,lane:0,age:0}; seedParticle(p); PART.push(p); }
+  while(PART.length>count) PART.pop();
+  for(const p of PART){
+    if(p.mode==='duct'){
+      p.s+=ductSpeed*dt;
+      if(p.s>=1) seedParticle(p);
+      continue;
+    }
+    const i=clamp(p.x|0,1,NX-2), j=clamp(p.y|0,1,NY-2), k=IX(i,j);
+    p.x+=FL.u[k]*dt; p.y+=FL.v[k]*dt; p.age+=dt;
+    if(p.x>=NX-2){ p.mode='duct'; p.s=0; p.lane=Math.random()*2-1; continue; }
+    if(p.x<1||p.y<1||p.y>=NY-1||p.age>30) seedParticle(p);
+  }
+}
+function computeStreamlines(){
+  const lines=[];
+  for(let s=0;s<26;s++){
+    const y0=2+ (NY-4)*s/25;
+    let x=2.0,y=y0; const pts=[[x,y]];
+    for(let n=0;n<200;n++){
+      const i=clamp(x|0,1,NX-2), j=clamp(y|0,1,NY-2), k=IX(i,j);
+      const ux=FL.u[k], uy=FL.v[k];
+      const m=Math.hypot(ux,uy); if(m<0.25) break;
+      x+=ux/m*0.9; y+=uy/m*0.9;
+      if(x<1||x>NX-2||y<1||y>NY-2) break;
+      pts.push([x,y]);
+    }
+    if(pts.length>6) lines.push(pts);
+  }
+  STREAM=lines;
+}
+
+/* 컬러맵 — 농도: 단일 색상 순차 / 속도: 단일 청색 순차 / 와도: 발산형 */
+const RAMPS={
+  conc:{light:['#faf7f4','#f4e0d3','#ecc4ab','#e0a17c','#cf7c52','#b55a31','#8e401f','#6a2d14'],
+        dark: ['#12181b','#2b1c16','#452519','#63301c','#853f22','#a85430','#c87246','#e09668']},
+  vel: {light:['#fcfcfb','#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'],
+        dark: ['#151b1e','#0d366b','#184f95','#256abf','#3987e5','#6da7ec','#9ec5f4','#cde2fb']},
+  vort:{light:['#184f95','#3987e5','#9ec5f4','#f0efec','#f5b0b0','#e06a6a','#b02828'],
+        dark: ['#3987e5','#6da7ec','#9ec5f4','#383835','#e08a8a','#d03b3b','#9a2020']}
+};
+const hex2rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+function rampLUT(name,dark){
+  const st=RAMPS[name][dark?'dark':'light'].map(hex2rgb), L=256, out=new Uint8Array(L*3);
+  for(let n=0;n<L;n++){
+    const f=n/(L-1)*(st.length-1), a=Math.floor(f), b=Math.min(st.length-1,a+1), t=f-a;
+    for(let c=0;c<3;c++) out[n*3+c]=st[a][c]+(st[b][c]-st[a][c])*t;
+  }
+  return out;
+}
+</script>
+<script>
+/* ══ 5. 차트 ═══════════════════════════════════════════════════ */
+const CSSVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let varCache=Object.create(null);
+const V=k=>(k in varCache)?varCache[k]:(varCache[k]=CSSVar(k));
+const flushVars=()=>{varCache=Object.create(null);};
+const isDark=()=>{const t=document.documentElement.getAttribute('data-theme');
+  return t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);};
+
+function prep(cv,hh){
+  const dpr=Math.min(devicePixelRatio||1,2), w=cv.clientWidth||cv.width, h=hh;
+  const pw=Math.round(w*dpr), ph=Math.round(h*dpr);
+  if(cv.width!==pw||cv.height!==ph){cv.width=pw;cv.height=ph;cv.style.height=h+'px';}
+  const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
+  return {c,w,h};
+}
+function niceMax(v){
+  if(v<=0) return 1;
+  const e=Math.pow(10,Math.floor(Math.log10(v))), m=v/e;
+  for(const s of [1,1.25,1.5,2,2.5,3,4,5,6,7.5,10]) if(m<=s+1e-9) return s*e;
+  return 10*e;
+}
+function timeTicks(end){
+  const raw=end/6, st=[5,10,15,20,30,45,60,90,120].find(s=>s>=raw)||150;
+  const out=[]; for(let m=0;m<=end+1e-6;m+=st) out.push(Math.round(m));
+  return out;
+}
+function phaseRanges(){
+  const inj=P.tinj/60;
+  return [
+    {a:-PRE_MIN,b:0,n:'관수 예비',d:'관수 시스템 선행 작동 · 기질 포화'},
+    {a:0,b:inj,n:'NO₂ 주입',d:`${P.tinj}s · ${(P.mfc*P.tinj/60).toFixed(2)} L 주입`},
+    {a:inj,b:P.irrStop,n:'관수 모니터링',d:'폐쇄 순환 · 기질 습윤 유지'},
+    {a:P.irrStop,b:P.TEND,n:'무관수 모니터링',d:'관수 중단 · 기질 점진 건조'},
+  ];
+}
+function phaseAt(min){const ps=phaseRanges();
+  for(let i=ps.length-1;i>=0;i--) if(min>=ps[i].a) return {i,...ps[i]};
+  return {i:0,...ps[0]};}
+const idxAt=m=>clamp(Math.round((m*60-SIM.t0)/SIM.dt),0,SIM.N-1);
+
+let tsG=null;
+function drawTS(playMin){
+  const {c,w,h}=prep($('tsChart'),290);
+  const ml=46,mr=10,mt=10,mb=26,pw=w-ml-mr,ph=h-mt-mb;
+  const xa=-PRE_MIN,xb=P.TEND;
+  const ymax=niceMax(Math.max(SIM.peak,SIM.peakCtrl)*1.12);
+  const X=m=>ml+(m-xa)/(xb-xa)*pw, Y=v=>mt+ph-clamp(v/ymax,0,1)*ph;
+  tsG={ml,mt,pw,ph,xa,xb,X,Y,w,h};
+  phaseRanges().forEach((p,i)=>{ if(i%2===0)return;
+    c.fillStyle=V('--sunk'); c.globalAlpha=.55;
+    c.fillRect(X(p.a),mt,Math.max(1,X(Math.min(p.b,xb))-X(p.a)),ph); c.globalAlpha=1; });
+  c.fillStyle=V('--accent'); c.globalAlpha=.13;
+  c.fillRect(X(0),mt,Math.max(1.5,X(P.tinj/60)-X(0)),ph); c.globalAlpha=1;
+  c.font='500 10px "IBM Plex Mono",monospace'; c.textAlign='right'; c.textBaseline='middle';
+  for(let i=0;i<=4;i++){const val=ymax*i/4,y=Y(val);
+    c.strokeStyle=V('--grid'); c.lineWidth=1; c.beginPath(); c.moveTo(ml,y+.5); c.lineTo(w-mr,y+.5); c.stroke();
+    c.fillStyle=V('--ink-3'); c.fillText(val.toFixed(val<0.1?3:2),ml-7,y);}
+  c.textAlign='center'; c.textBaseline='top';
+  timeTicks(P.TEND).forEach(m=>{ c.fillStyle=V('--ink-3'); c.fillText(m,X(m),mt+ph+7);
+    c.strokeStyle=V('--line-2'); c.beginPath(); c.moveTo(X(m),mt+ph); c.lineTo(X(m),mt+ph+3); c.stroke(); });
+  c.textAlign='left'; c.fillText('min',ml-4,mt+ph+7);
+  if(P.whoPpm<ymax){ c.strokeStyle=V('--ink-3'); c.globalAlpha=.5; c.lineWidth=1;
+    c.beginPath(); c.moveTo(ml,Y(P.whoPpm)+.5); c.lineTo(w-mr,Y(P.whoPpm)+.5); c.stroke(); c.globalAlpha=1;
+    c.fillStyle=V('--ink-3'); c.font='500 9px "IBM Plex Mono",monospace'; c.textAlign='right'; c.textBaseline='bottom';
+    c.fillText('WHO 1h',w-mr-2,Y(P.whoPpm)-2); }
+  if(P.lod>0&&P.lod<ymax*0.5){ c.strokeStyle=V('--ink-3'); c.globalAlpha=.35; c.setLineDash([2,3]);
+    c.beginPath(); c.moveTo(ml,Y(P.lod)+.5); c.lineTo(w-mr,Y(P.lod)+.5); c.stroke();
+    c.setLineDash([]); c.globalAlpha=1;
+    c.fillStyle=V('--ink-3'); c.font='500 9px "IBM Plex Mono",monospace'; c.textAlign='left'; c.textBaseline='bottom';
+    c.fillText('LOD',ml+3,Y(P.lod)-2); }
+  const line=(arr,col)=>{ c.strokeStyle=col; c.lineWidth=2; c.lineJoin='round'; c.beginPath();
+    const st=Math.max(1,Math.floor(SIM.N/pw/2));
+    for(let i=0;i<SIM.N;i+=st){const x=X(SIM.t[i]/60),y=Y(arr[i]); i?c.lineTo(x,y):c.moveTo(x,y);} c.stroke(); };
+  line(SIM.cCtrl,V('--s2')); line(SIM.cUp,V('--s1')); line(SIM.cDown,V('--s3'));
+  if(playMin!==null){ const x=X(playMin), i=idxAt(playMin);
+    c.strokeStyle=V('--accent'); c.lineWidth=1.5; c.beginPath(); c.moveTo(x,mt); c.lineTo(x,mt+ph); c.stroke();
+    [[SIM.cUp[i],V('--s1')],[SIM.cDown[i],V('--s3')],[SIM.cCtrl[i],V('--s2')]].forEach(([v2,col])=>{
+      c.fillStyle=V('--surface'); c.beginPath(); c.arc(x,Y(v2),4.4,0,7); c.fill();
+      c.fillStyle=col; c.beginPath(); c.arc(x,Y(v2),2.8,0,7); c.fill(); }); }
+}
+
+function drawCT(playMin){
+  const {c,w,h}=prep($('ctChart'),230);
+  const ml=46,mr=10,mt=10,mb=26,pw=w-ml-mr,ph=h-mt-mb, last=SIM.N-1;
+  const top=SIM.cumP[last]+SIM.cumC[last]+SIM.cumA[last]+SIM.cumS[last];
+  const ymax=niceMax(Math.max(top,1)*1.08);
+  const X=m=>ml+(m+PRE_MIN)/(P.TEND+PRE_MIN)*pw, Y=v=>mt+ph-clamp(v/ymax,0,1)*ph;
+  c.font='500 10px "IBM Plex Mono",monospace'; c.textAlign='right'; c.textBaseline='middle';
+  for(let i=0;i<=4;i++){const val=ymax*i/4,y=Y(val);
+    c.strokeStyle=V('--grid'); c.lineWidth=1; c.beginPath(); c.moveTo(ml,y+.5); c.lineTo(w-mr,y+.5); c.stroke();
+    c.fillStyle=V('--ink-3'); c.fillText(val.toFixed(val<10?1:0),ml-7,y);}
+  c.textAlign='center'; c.textBaseline='top';
+  timeTicks(P.TEND).forEach(m=>{c.fillStyle=V('--ink-3'); c.fillText(m,X(m),mt+ph+7);});
+  const st=Math.max(1,Math.floor(SIM.N/pw/2));
+  const base=new Float32Array(SIM.N);
+  [[SIM.cumP,V('--s1')],[SIM.cumC,V('--s2')],[SIM.cumA,V('--s3')],[SIM.cumS,V('--s4')]].forEach(([arr,col])=>{
+    c.fillStyle=col; c.globalAlpha=.85; c.beginPath(); let f=true;
+    for(let i=0;i<SIM.N;i+=st){const x=X(SIM.t[i]/60),y=Y(base[i]+arr[i]); f?(c.moveTo(x,y),f=false):c.lineTo(x,y);}
+    for(let i=SIM.N-1;i>=0;i-=st) c.lineTo(X(SIM.t[i]/60),Y(base[i]));
+    c.closePath(); c.fill(); c.globalAlpha=1;
+    c.strokeStyle=V('--surface'); c.lineWidth=2; c.beginPath(); f=true;
+    for(let i=0;i<SIM.N;i+=st){const x=X(SIM.t[i]/60),y=Y(base[i]+arr[i]); f?(c.moveTo(x,y),f=false):c.lineTo(x,y);}
+    c.stroke();
+    for(let i=0;i<SIM.N;i++) base[i]+=arr[i];
+  });
+  if(playMin!==null){const x=X(playMin);
+    c.strokeStyle=V('--accent'); c.lineWidth=1.5; c.beginPath(); c.moveTo(x,mt); c.lineTo(x,mt+ph); c.stroke();}
+  c.fillStyle=V('--ink-2'); c.font='600 10px "IBM Plex Mono",monospace'; c.textAlign='right'; c.textBaseline='bottom';
+  c.fillText(top.toFixed(1)+' µmol',w-mr-3,Y(top)-4);
+}
+
+function drawSTD(){
+  const {c,w,h}=prep($('stdChart'),290);
+  const ml=50,mr=14,mt=14,mb=34,pw=w-ml-mr,ph=h-mt-mb;
+  const xmax=Math.max(5,niceMax(SIM.extExp*1.1));
+  const ymax=Math.max(SIM.absStd[5],SIM.absExp)*1.15||0.15;
+  const X=v=>ml+clamp(v/xmax,0,1)*pw, Y=v=>mt+ph-clamp(v/ymax,0,1)*ph;
+  c.font='500 10px "IBM Plex Mono",monospace'; c.textAlign='right'; c.textBaseline='middle';
+  for(let i=0;i<=4;i++){const val=ymax*i/4,y=Y(val);
+    c.strokeStyle=V('--grid'); c.lineWidth=1; c.beginPath(); c.moveTo(ml,y+.5); c.lineTo(w-mr,y+.5); c.stroke();
+    c.fillStyle=V('--ink-3'); c.fillText(val.toFixed(3),ml-7,y);}
+  c.textAlign='center'; c.textBaseline='top';
+  for(let i=0;i<=5;i++){const val=xmax*i/5; c.fillStyle=V('--ink-3'); c.fillText(val.toFixed(1),X(val),mt+ph+7);}
+  c.fillStyle=V('--ink-3'); c.font='500 10px "Noto Sans KR",sans-serif';
+  c.fillText('표준용액 농도 (µM)',ml+pw/2,mt+ph+20);
+  c.save(); c.translate(12,mt+ph/2); c.rotate(-Math.PI/2); c.textAlign='center'; c.textBaseline='top';
+  c.fillText('A₅₄₈',0,0); c.restore();
+  if(xmax>5){ c.fillStyle=V('--ink-3'); c.globalAlpha=.10; c.fillRect(X(5),mt,X(xmax)-X(5),ph); c.globalAlpha=1;
+    c.strokeStyle=V('--ink-3'); c.lineWidth=1; c.beginPath(); c.moveTo(X(5)+.5,mt); c.lineTo(X(5)+.5,mt+ph); c.stroke();
+    c.fillStyle=V('--ink-3'); c.font='500 9px "Noto Sans KR",sans-serif'; c.textAlign='left'; c.textBaseline='top';
+    c.fillText('표준곡선 범위 초과',X(5)+5,mt+4); }
+  c.strokeStyle=V('--s1'); c.lineWidth=2; c.beginPath(); c.moveTo(X(0),Y(SIM.absStd[0])); c.lineTo(X(5),Y(SIM.absStd[5])); c.stroke();
+  STD_PTS.forEach((v2,i)=>{ c.fillStyle=V('--surface'); c.beginPath(); c.arc(X(v2),Y(SIM.absStd[i]),5,0,7); c.fill();
+    c.fillStyle=V('--s1'); c.beginPath(); c.arc(X(v2),Y(SIM.absStd[i]),3.2,0,7); c.fill(); });
+  const mark=(x,y,col,lab)=>{
+    c.strokeStyle=col; c.lineWidth=1.5; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(ml,y+.5); c.lineTo(x,y+.5); c.moveTo(x+.5,mt+ph); c.lineTo(x+.5,y); c.stroke(); c.setLineDash([]);
+    c.fillStyle=V('--surface'); c.beginPath(); c.arc(x,y,6.5,0,7); c.fill();
+    c.fillStyle=col; c.beginPath(); c.arc(x,y,4.2,0,7); c.fill();
+    c.fillStyle=V('--ink'); c.font='600 10px "Noto Sans KR",sans-serif';
+    const right=x>ml+pw*0.7; c.textAlign=right?'right':'left'; c.textBaseline='bottom';
+    c.fillText(lab,x+(right?-9:9),y-2); };
+  mark(X(SIM.extCtl),Y(SIM.absCtl),V('--s2'),'대조구 A·B');
+  mark(X(SIM.extExp),Y(SIM.absExp),V('--s3'),'실험구 C·D');
+}
+
+function buildTable(){
+  const st=Math.max(1,Math.round(P.TEND/24/5)*5||5);
+  let rows='';
+  for(let m=-PRE_MIN;m<=P.TEND;m+=st){ const i=idxAt(m);
+    rows+=`<tr><td>${m>0?'+':''}${m}</td><td>${SIM.cUp[i].toFixed(4)}</td><td>${SIM.cDown[i].toFixed(4)}</td>`
+        +`<td>${SIM.cCtrl[i].toFixed(4)}</td><td>${(SIM.spre[i]*100).toFixed(1)}</td><td>${(SIM.theta[i]*100).toFixed(0)}</td></tr>`;}
+  $('tsTable').innerHTML=`<table class="dt"><thead><tr><th>min</th><th>전단</th><th>후단</th><th>대조</th><th>SPRE %</th><th>습윤 %</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function bindTip(){
+  const wrap=$('tsWrap'), cv=$('tsChart'); let tip=null;
+  const show=ev=>{
+    if(!tsG||!SIM) return;
+    const r=cv.getBoundingClientRect();
+    const px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+    const min=clamp(tsG.xa+(px-tsG.ml)/tsG.pw*(tsG.xb-tsG.xa),tsG.xa,tsG.xb);
+    const i=idxAt(min);
+    if(!tip){tip=document.createElement('div');tip.className='tip';wrap.appendChild(tip);}
+    tip.innerHTML=`<div class="tt">${min>0?'+':''}${min.toFixed(1)} min</div>`
+      +[['전단',SIM.cUp[i],V('--s1')],['후단',SIM.cDown[i],V('--s3')],['대조',SIM.cCtrl[i],V('--s2')]]
+        .map(([k,v2,col])=>`<div class="tr"><i style="background:${col}"></i>${k}<b>${v2.toFixed(4)}</b></div>`).join('')
+      +`<div class="tr" style="margin-top:3px;color:var(--ink-3)">SPRE<b>${(SIM.spre[i]*100).toFixed(1)} %</b></div>`;
+    tip.style.left=clamp(tsG.X(min),74,tsG.w-74)+'px';
+    tip.style.top=(tsG.mt+8)+'px';
+    drawTS(min);
+  };
+  const hide=()=>{ if(tip){tip.remove();tip=null;} drawTS(ST.playMin); };
+  cv.addEventListener('mousemove',show); cv.addEventListener('mouseleave',hide);
+  cv.addEventListener('touchmove',e=>{e.preventDefault();show(e);},{passive:false});
+  cv.addEventListener('touchend',hide);
+}
+</script>
+<script>
+/* ══ 6. 장면 렌더 ══════════════════════════════════════════════ */
+const SC={W:1000,H:600};
+const CB={x:96,y:78,w:808,h:384};                 // 챔버 외곽
+const FD={x:CB.x+8,y:CB.y+8,w:CB.w-16,h:CB.h-16}; // 유동 영역
+const AXIS=CB.y+CB.h/2;                           // 덕트 중심선
+/* 순환 덕트 경로: 챔버 출구 → 우측 → 하부 → 좌측 → 챔버 유입구 */
+const DUCT=[[CB.x+CB.w,AXIS],[936,AXIS],[936,516],[68,516],[68,AXIS],[CB.x,AXIS]];
+const DSEG=(()=>{const L=[];let T=0;
+  for(let i=0;i<DUCT.length-1;i++){const d=Math.hypot(DUCT[i+1][0]-DUCT[i][0],DUCT[i+1][1]-DUCT[i][1]);L.push(d);T+=d;}
+  return {L,T};})();
+function ductPoint(s){
+  let d=clamp(s,0,1)*DSEG.T;
+  for(let i=0;i<DSEG.L.length;i++){
+    if(d<=DSEG.L[i]){const a=DUCT[i],b=DUCT[i+1],f=DSEG.L[i]?d/DSEG.L[i]:0;
+      const nx=-(b[1]-a[1])/(DSEG.L[i]||1), ny=(b[0]-a[0])/(DSEG.L[i]||1);
+      return {x:a[0]+(b[0]-a[0])*f,y:a[1]+(b[1]-a[1])*f,nx,ny};}
+    d-=DSEG.L[i];
+  }
+  const e=DUCT[DUCT.length-1]; return {x:e[0],y:e[1],nx:0,ny:1};
+}
+const ST={playing:false,playMin:-PRE_MIN,speed:10,last:0,table:false,
+  field:'conc',ov:{stream:true,vec:false,part:true,grid:false,boost:true},acc:0};
+let fieldCv=null,fieldCtx=null,fieldImg=null,LUT=null,lutKey='';
+const drops=[];
+
+function fieldLUT(){
+  const key=ST.field+(isDark()?'-d':'-l');
+  if(key!==lutKey){ LUT=rampLUT(ST.field,isDark()); lutKey=key; }
+  return LUT;
+}
+function paintField(){
+  if(!fieldCv){ fieldCv=document.createElement('canvas'); fieldCv.width=NX; fieldCv.height=NY;
+    fieldCtx=fieldCv.getContext('2d'); fieldImg=fieldCtx.createImageData(NX,NY); }
+  const lut=fieldLUT(), d=fieldImg.data;
+  let vmax=1e-6;
+  if(ST.field==='vel'){ for(let k=0;k<NN;k++){const m=Math.hypot(FL.u[k],FL.v[k]); if(m>vmax)vmax=m;} }
+  // 단일통과 효율이 수 %라 실제 공간 대비는 매우 작다. 강조 모드는 평균 대비
+  // 편차를 확대해 보여준다(정량값이 아니라 구조를 보기 위한 표시).
+  let fm=0;
+  if(ST.field==='conc'&&ST.ov.boost){ let s=0,c=0;
+    for(let k=0;k<NN;k++) if(!FL.solid[k]){s+=FL.dn[k];c++;} fm=c?s/c:0; }
+  for(let j=0;j<NY;j++) for(let i=0;i<NX;i++){
+    const k=IX(i,j), o=k*4;
+    let t;
+    if(ST.field==='conc') t=ST.ov.boost&&fm>1e-5
+      ? clamp(0.45+(FL.dn[k]-fm)/fm*3.2,0,1)
+      : clamp(FL.dn[k],0,1);
+    else if(ST.field==='vel') t=clamp(Math.hypot(FL.u[k],FL.v[k])/vmax,0,1);
+    else { const i1=clamp(i,1,NX-2), j1=clamp(j,1,NY-2), kk=IX(i1,j1);
+      const w=(FL.v[kk+1]-FL.v[kk-1]-FL.u[kk+NX]+FL.u[kk-NX])*0.5;
+      t=clamp(0.5+w*0.06,0,1); }
+    const n=Math.round(t*255)*3;
+    d[o]=lut[n]; d[o+1]=lut[n+1]; d[o+2]=lut[n+2]; d[o+3]=255;
+  }
+  fieldCtx.putImageData(fieldImg,0,0);
+}
+const gx=i=>FD.x+i/(NX-1)*FD.w, gy=j=>FD.y+j/(NY-1)*FD.h;
+
+function drawScene(i,dt){
+  const cv=$('scene'), dpr=Math.min(devicePixelRatio||1,2);
+  const scale=Math.max(0.2,(cv.clientWidth||SC.W)/SC.W);   // 폭 0 이면 캔버스가 사라진다
+  const bw=Math.round(SC.W*scale*dpr), bh=Math.round(SC.H*scale*dpr);
+  if(cv.width!==bw||cv.height!==bh){cv.width=bw;cv.height=bh;}
+  const c=cv.getContext('2d'); c.setTransform(dpr*scale,0,0,dpr*scale,0,0);
+  c.clearRect(0,0,SC.W,SC.H);
+  const minNow=SIM.t[i]/60, C=SIM.cUp[i], spre=SIM.spre[i], theta=SIM.theta[i];
+  const irrOn=minNow<P.irrStop, injecting=minNow>=0&&minNow<P.tinj/60;
+  const nitFrac=SIM.mCoir>0?clamp(SIM.no2m[i]/SIM.mCoir/0.02,0,1):0;
+  const cMax=Math.max(SIM.peak,1e-6);
+  const lab=(t,x,y,col,sz=10,al='center',wt=500)=>{c.fillStyle=col;
+    c.font=`${wt} ${sz}px "Noto Sans KR",sans-serif`;c.textAlign=al;c.textBaseline='middle';c.fillText(t,x,y);};
+  const mn=(t,x,y,col,sz=11,al='center',wt=600)=>{c.fillStyle=col;
+    c.font=`${wt} ${sz}px "IBM Plex Mono",monospace`;c.textAlign=al;c.textBaseline='middle';c.fillText(t,x,y);};
+  const rr=(x,y,w,h,r)=>{c.beginPath();c.roundRect(x,y,w,h,r);};
+
+  /* 덕트 루프 */
+  c.lineCap='round'; c.lineJoin='round';
+  c.strokeStyle=V('--line-2'); c.lineWidth=26; c.beginPath();
+  c.moveTo(CB.x+CB.w,AXIS); c.lineTo(936,AXIS); c.lineTo(936,516); c.lineTo(68,516); c.lineTo(68,AXIS); c.lineTo(CB.x,AXIS);
+  c.stroke();
+  c.strokeStyle=V('--surface-2'); c.lineWidth=20; c.stroke();
+  c.strokeStyle=V('--line'); c.lineWidth=1; c.stroke();
+  c.fillStyle=V('--surface'); c.strokeStyle=V('--line-2'); c.lineWidth=1.4;
+  rr(430,538,152,54,7); c.fill(); c.stroke();
+  lab('Air Handling Unit',506,556,V('--ink'),10.5,'center',700);
+  mn((P.uface*1000).toFixed(0)+' mm/s 면속도',506,574,V('--ink-3'),9);
+  const fa=(performance.now()/900)%6.2832;
+  c.save(); c.translate(406,565); c.rotate(fa); c.strokeStyle=V('--s1'); c.lineWidth=2;
+  for(let k=0;k<3;k++){c.rotate(2.094);c.beginPath();c.moveTo(0,0);c.lineTo(0,-11);c.stroke();} c.restore();
+  c.strokeStyle=V('--line-2'); c.lineWidth=1.4;
+  c.beginPath(); c.moveTo(506,538); c.lineTo(506,527); c.stroke();
+  c.fillStyle=V('--surface'); c.strokeStyle=V('--line-2'); c.lineWidth=1.4;
+  rr(630,538,152,54,7); c.fill(); c.stroke();
+  lab('Flow Nozzle Chamber',706,556,V('--ink'),10.5,'center',700);
+  mn('유량 계측',706,574,V('--ink-3'),9);
+  c.strokeStyle=V('--line-2'); c.beginPath(); c.moveTo(706,538); c.lineTo(706,527); c.stroke();
+
+  /* NO₂ 실린더 + MFC */
+  c.fillStyle=V('--surface'); c.strokeStyle=V('--line-2'); c.lineWidth=1.4;
+  rr(12,536,34,60,14); c.fill(); c.stroke();
+  c.fillStyle=injecting?V('--no2'):V('--sunk'); rr(16,552,26,38,9); c.fill();
+  lab('NO₂',29,571,injecting?'#fff':V('--ink-2'),9,'center',700);
+  c.fillStyle=V('--surface'); c.strokeStyle=V('--line-2'); rr(58,548,52,32,6); c.fill(); c.stroke();
+  lab('MFC',84,558,V('--ink-3'),8.5); mn(P.mfc.toFixed(1)+' L/m',84,571,V('--ink'),9);
+  c.strokeStyle=injecting?V('--no2'):V('--line-2'); c.lineWidth=injecting?3:1.6;
+  c.beginPath(); c.moveTo(46,566); c.lineTo(58,566); c.stroke();
+  c.beginPath(); c.moveTo(84,548); c.lineTo(84,527); c.lineTo(68,527); c.stroke();
+  if(injecting){ c.fillStyle=V('--no2'); c.globalAlpha=.25+.3*Math.sin(performance.now()/120);
+    c.beginPath(); c.arc(68,516,12,0,7); c.fill(); c.globalAlpha=1; }
+
+  /* 챔버 + 장 */
+  c.fillStyle=V('--surface'); c.strokeStyle=V('--line-2'); c.lineWidth=2;
+  rr(CB.x,CB.y,CB.w,CB.h,10); c.fill(); c.stroke();
+  paintField();
+  c.save(); rr(FD.x,FD.y,FD.w,FD.h,4); c.clip();
+  c.imageSmoothingEnabled=true; c.imageSmoothingQuality='high';
+  c.drawImage(fieldCv,FD.x,FD.y,FD.w,FD.h);
+
+  /* 격자 */
+  if(ST.ov.grid){ c.strokeStyle=V('--ink-3'); c.globalAlpha=.16; c.lineWidth=.5; c.beginPath();
+    for(let i2=0;i2<NX;i2+=4){c.moveTo(gx(i2),FD.y);c.lineTo(gx(i2),FD.y+FD.h);}
+    for(let j2=0;j2<NY;j2+=4){c.moveTo(FD.x,gy(j2));c.lineTo(FD.x+FD.w,gy(j2));}
+    c.stroke(); c.globalAlpha=1; }
+
+  /* 바이오필터 벽 — 세로 적층 모듈 하나의 벽, 층은 기류 방향 직렬 */
+  const W=FL.wall;
+  if(W){
+    W.bands.forEach(b=>{
+      const x=gx(b.x0), w=gx(b.x0+b.w)-x, coir=b.k===2;
+      c.fillStyle=coir?V('--s2'):V('--carbon');
+      c.globalAlpha=coir?(.28+.30*theta):.55;
+      c.fillRect(x,FD.y,w,FD.h); c.globalAlpha=1;
+      if(coir){ c.fillStyle=V('--accent'); c.globalAlpha=.60*nitFrac; c.fillRect(x,FD.y,w,FD.h); c.globalAlpha=1;
+        c.strokeStyle=V('--s2'); c.globalAlpha=.42; c.lineWidth=.8; c.beginPath();
+        for(let k=0;k<16;k++){const yy=FD.y+8+k*(FD.h-16)/15; c.moveTo(x+1,yy); c.lineTo(x+w-1,yy+3);} c.stroke(); c.globalAlpha=1; }
+      c.strokeStyle=V('--line-2'); c.globalAlpha=.6; c.lineWidth=1; c.strokeRect(x+.5,FD.y,w-1,FD.h); c.globalAlpha=1;
+    });
+    const wx0=gx(W.x0), wx1=gx(W.x1);
+    /* 세로 적층 경계선 + 모듈 번호 */
+    c.strokeStyle=V('--ink'); c.globalAlpha=.55; c.lineWidth=2;
+    FL.splits.forEach(f=>{ const y=FD.y+f*FD.h;
+      c.beginPath(); c.moveTo(wx0,y); c.lineTo(wx1,y); c.stroke(); });
+    c.globalAlpha=1;
+    const nm=clamp(P.nmod,1,4);
+    for(let m=0;m<nm;m++){
+      const yc=FD.y+FD.h*(m+0.5)/nm;
+      c.fillStyle=V('--surface'); c.globalAlpha=.8;
+      rr(wx0+3,yc-8,Math.min(30,wx1-wx0-6),16,5); c.fill(); c.globalAlpha=1;
+      mn('M'+(m+1),wx0+3+Math.min(30,wx1-wx0-6)/2,yc,V('--ink-2'),9);
+    }
+    /* 층 라벨 */
+    W.bands.forEach((b,bi)=>{ const x=gx(b.x0), w=gx(b.x0+b.w)-x;
+      if(w<14) return;
+      c.save(); c.translate(x+w/2,FD.y+16); c.rotate(-Math.PI/2);
+      mn(['①','②','③','④'][bi]+' '+b.nm,0,0,b.k===2?V('--s2'):V('--ink-3'),8.5,'right',600); c.restore(); });
+    /* 식재부 (상류면) */
+    const px=gx(W.plantX);
+    c.strokeStyle=V('--leaf'); c.lineWidth=1.8; c.beginPath(); c.moveTo(px,FD.y); c.lineTo(px,FD.y+FD.h); c.stroke();
+    const dens=clamp(P.lamPlant/3.0e-4,0,1.3);
+    for(let k=0;k<15;k++){ const ly=FD.y+10+k*(FD.h-20)/14, sd=k%2?1:-1;
+      c.fillStyle=V('--leaf'); c.globalAlpha=.24+.46*dens;
+      c.beginPath(); c.ellipse(px-10,ly,12,5.2,sd*0.42,0,7); c.fill(); c.globalAlpha=1; }
+  }
+
+  /* 유선 */
+  if(ST.ov.stream){ c.strokeStyle=isDark()?'rgba(255,255,255,.42)':'rgba(16,22,26,.34)'; c.lineWidth=1.1;
+    STREAM.forEach(pts=>{ c.beginPath();
+      pts.forEach((p2,n)=>{const x=gx(p2[0]),y=gy(p2[1]); n?c.lineTo(x,y):c.moveTo(x,y);}); c.stroke();
+      const e=pts[pts.length-1], e2=pts[Math.max(0,pts.length-4)];
+      const a=Math.atan2(e[1]-e2[1],e[0]-e2[0]), ex=gx(e[0]), ey=gy(e[1]);
+      c.beginPath(); c.moveTo(ex,ey);
+      c.lineTo(ex-6*Math.cos(a-0.4),ey-6*Math.sin(a-0.4));
+      c.moveTo(ex,ey); c.lineTo(ex-6*Math.cos(a+0.4),ey-6*Math.sin(a+0.4)); c.stroke(); }); }
+
+  /* 속도 벡터 */
+  if(ST.ov.vec){ let vm=1e-6; for(let k=0;k<NN;k++){const m=Math.hypot(FL.u[k],FL.v[k]); if(m>vm)vm=m;}
+    c.strokeStyle=isDark()?'rgba(255,255,255,.5)':'rgba(16,22,26,.45)'; c.lineWidth=1;
+    c.beginPath();
+    for(let j=3;j<NY-3;j+=6) for(let i2=3;i2<NX-3;i2+=7){ const k=IX(i2,j);
+      const m=Math.hypot(FL.u[k],FL.v[k])/vm; if(m<0.04) continue;
+      const x=gx(i2), y=gy(j), L=5+m*13, a=Math.atan2(FL.v[k],FL.u[k]);
+      const x2=x+Math.cos(a)*L, y2=y+Math.sin(a)*L;
+      c.moveTo(x,y); c.lineTo(x2,y2);
+      c.moveTo(x2,y2); c.lineTo(x2-4*Math.cos(a-0.45),y2-4*Math.sin(a-0.45));
+      c.moveTo(x2,y2); c.lineTo(x2-4*Math.cos(a+0.45),y2-4*Math.sin(a+0.45)); }
+    c.stroke(); }
+
+  /* 챔버 내 입자 */
+  if(ST.ov.part){ c.fillStyle=V('--no2');
+    for(const p2 of PART){ if(p2.mode!=='field') continue;
+      const k=IX(clamp(p2.x|0,0,NX-1),clamp(p2.y|0,0,NY-1));
+      c.globalAlpha=clamp(0.25+0.7*FL.dn[k],0.12,0.95);
+      c.beginPath(); c.arc(gx(p2.x),gy(p2.y),2.1,0,7); c.fill(); }
+    c.globalAlpha=1; }
+
+  /* 관수 */
+  if(irrOn&&W){ c.strokeStyle=V('--water'); c.lineWidth=2.4; c.beginPath();
+    c.moveTo(FD.x+16,FD.y+8); c.lineTo(FD.x+FD.w-16,FD.y+8); c.stroke();
+    if(drops.length<10) drops.push({x:gx(W.x0)+Math.random()*(gx(W.x1)-gx(W.x0)),y:FD.y+10,v:70+Math.random()*80}); }
+  for(let k=drops.length-1;k>=0;k--){ const d=drops[k]; d.y+=d.v*dt;
+    if(d.y>FD.y+FD.h-6){drops.splice(k,1);continue;}
+    c.fillStyle=V('--water'); c.globalAlpha=.6; c.beginPath(); c.ellipse(d.x,d.y,1.6,4,0,0,7); c.fill(); c.globalAlpha=1; }
+  c.restore();
+
+  /* 순환 덕트 내 입자 — 폐쇄 루프가 돌고 있음을 보여준다 */
+  if(ST.ov.part){ c.fillStyle=V('--no2');
+    for(const p2 of PART){ if(p2.mode!=='duct') continue;
+      const q=ductPoint(p2.s);
+      c.globalAlpha=clamp(0.22+0.6*clamp(C/cMax,0,1),0.12,0.85);
+      c.beginPath(); c.arc(q.x+q.nx*p2.lane*5,q.y+q.ny*p2.lane*5,2,0,7); c.fill(); }
+    c.globalAlpha=1;
+    /* 순환 방향 화살표 */
+    c.strokeStyle=V('--ink-3'); c.globalAlpha=.5; c.lineWidth=1.6;
+    [0.12,0.38,0.62,0.88].forEach(s=>{ const q=ductPoint(s), q2=ductPoint(s+0.012);
+      const a=Math.atan2(q2.y-q.y,q2.x-q.x);
+      c.beginPath(); c.moveTo(q.x-6*Math.cos(a-0.5),q.y-6*Math.sin(a-0.5));
+      c.lineTo(q.x,q.y); c.lineTo(q.x-6*Math.cos(a+0.5),q.y-6*Math.sin(a+0.5)); c.stroke(); });
+    c.globalAlpha=1; }
+
+  /* 프레임 재강조 + 내부 캡션 (장 위에 얹음) */
+  c.strokeStyle=V('--line-2'); c.lineWidth=2; rr(CB.x,CB.y,CB.w,CB.h,10); c.stroke();
+  const pill=(x,y,w,t,col)=>{
+    c.fillStyle=V('--surface'); c.globalAlpha=.86; rr(x,y,w,19,9); c.fill(); c.globalAlpha=1;
+    c.strokeStyle=V('--line-2'); c.lineWidth=1; rr(x,y,w,19,9); c.stroke();
+    mn(t,x+w/2,y+10,col||V('--ink-2'),9.5,'center',600);
+  };
+  pill(FD.x+6,FD.y+6,168,'IAQ CHAMBER · '+P.V.toFixed(1)+' m³');
+  pill(FD.x+6,FD.y+FD.h-25,168,P.T.toFixed(0)+'°C · RH '+P.rh.toFixed(0)+'% · 세로 '+P.nmod+'단');
+  pill(FD.x+FD.w-186,FD.y+FD.h-25,180,
+    '습윤 '+(theta*100).toFixed(0)+'% · 벽면 '+SIM.wall[i].toFixed(1)+' µmol');
+
+  /* 계측 판독부 */
+  const probe=(x,val,l,col)=>{
+    c.strokeStyle=col; c.lineWidth=1.6; c.beginPath(); c.moveTo(x,CB.y); c.lineTo(x,64); c.stroke();
+    c.fillStyle=col; c.beginPath(); c.arc(x,CB.y,3.4,0,7); c.fill();
+    c.fillStyle=V('--surface'); c.strokeStyle=col; c.lineWidth=1.4; rr(x-54,30,108,34,6); c.fill(); c.stroke();
+    lab(l,x,40,V('--ink-3'),8.5); mn(val.toFixed(3)+' ppm',x,54,col,12);
+  };
+  probe(CB.x+76,SIM.cUp[i],'Serinus 40 · 전단',V('--s1'));
+  const lastX=W?gx(W.x1):CB.x+CB.w-200;
+  probe(clamp(lastX+80,CB.x+230,CB.x+CB.w-130),SIM.cDown[i],'Serinus 40 · 후단',V('--s3'));
+
+  /* 샘플 라인 → 인큐베이터 (덕트와 교차하지 않도록 상부 경유) */
+  c.strokeStyle=V('--water'); c.lineWidth=1.4; c.setLineDash([5,4]);
+  c.beginPath(); c.moveTo(850,CB.y); c.lineTo(850,36); c.lineTo(872,36); c.stroke();
+  c.setLineDash([]);
+  c.fillStyle=V('--water'); c.beginPath(); c.arc(850,CB.y,3,0,7); c.fill();
+  c.fillStyle=V('--surface'); c.strokeStyle=V('--line-2'); c.lineWidth=1.4; rr(872,8,116,56,7); c.fill(); c.stroke();
+  lab('NU-5810E',930,22,V('--ink'),9.5,'center',700);
+  mn(SIM.aucT[i].toFixed(2),930,40,V('--accent'),12);
+  lab('ppm·min 누적',930,54,V('--ink-3'),8);
+
+  /* 상태 배지 */
+  const by=CB.y+CB.h+7;
+  const badge=(x,t,on)=>{ c.fillStyle=on?V('--accent'):V('--sunk');
+    c.strokeStyle=on?V('--accent'):V('--line-2'); c.lineWidth=1; rr(x,by,94,19,9); c.fill(); c.stroke();
+    lab(t,x+47,by+10,on?'#fff':V('--ink-3'),9,'center',600); };
+  badge(CB.x,'관수 '+(irrOn?'ON':'OFF'),irrOn);
+  badge(CB.x+102,'폐쇄 순환',true);
+  badge(CB.x+204,'SPRE '+(spre*100).toFixed(1)+'%',spre>0.01);
+  badge(CB.x+306,'제거 '+(SIM.peak>0?Math.max(0,(1-C/SIM.peak)*100):0).toFixed(1)+'%',C<SIM.peak*0.5);
+  mn('기류 좌 → 우 · 필터 벽이 단면 전체 차단 (우회 '+(P.bypass*100).toFixed(0)+' %)',
+     CB.x+CB.w,by+10,V('--ink-3'),9,'right');
+}
+
+function updateColorbar(){
+  const dark=isDark(), st=RAMPS[ST.field][dark?'dark':'light'];
+  $('cbarRamp').style.background=`linear-gradient(90deg,${st.join(',')})`;
+  if(ST.field==='conc'){
+    if(ST.ov.boost){ $('cbarLo').textContent='낮음'; $('cbarHi').textContent='높음';
+      $('cbarUnit').textContent='NO₂ 상대 농도 — 대비 강조 ON (평균 대비 편차를 확대한 표시. 실제 단일통과 제거는 '
+        +(SIM.spre[idxAt(ST.playMin)]*100).toFixed(1)+' %)'; }
+    else { $('cbarLo').textContent='0'; $('cbarHi').textContent=SIM.peak.toFixed(2);
+      $('cbarUnit').textContent='ppm — 실척 표시. 단일통과 제거가 수 %라 공간 대비가 거의 없습니다'; } }
+  else if(ST.field==='vel'){ $('cbarLo').textContent='0'; $('cbarHi').textContent='최대';
+    $('cbarUnit').textContent='속도 크기 |U| — 필터 통과부 감속·후류 재순환 확인'; }
+  else { $('cbarLo').textContent='− 시계'; $('cbarHi').textContent='+ 반시계';
+    $('cbarUnit').textContent='와도 ω — 회색이 0, 양방향 발산 스케일'; }
+}
+
+/* ══ 7. 식물 혼합 (합 100 % 구속) ══════════════════════════════ */
+function normalizeMix(){
+  const act=SPECIES.filter(s=>s.on);
+  SPECIES.forEach(s=>{ if(!s.on) s.w=0; });
+  if(!act.length) return;
+  const sum=act.reduce((a,s)=>a+s.w,0);
+  if(sum<=0) act.forEach(s=>s.w=100/act.length);
+  else act.forEach(s=>s.w=s.w/sum*100);
+}
+function setShare(id,v){
+  const act=SPECIES.filter(s=>s.on);
+  const me=SPECIES.find(s=>s.id===id);
+  if(act.length<=1){ me.w=100; return; }
+  v=clamp(v,0,100);
+  const others=act.filter(s=>s!==me), rest=100-v, so=others.reduce((a,s)=>a+s.w,0);
+  me.w=v;
+  if(so>0) others.forEach(s=>s.w=s.w/so*rest);
+  else others.forEach(s=>s.w=rest/others.length);
+}
+function toggleSpecies(s,on){
+  const act=SPECIES.filter(x=>x.on&&x!==s);
+  if(on){ s.on=true;
+    if(!act.length){ s.w=100; }
+    else { const share=100/(act.length+1), so=act.reduce((a,x)=>a+x.w,0);
+      s.w=share; act.forEach(x=>x.w=so>0?x.w/so*(100-share):(100-share)/act.length); } }
+  else { if(act.length===0){ s.w=100; return false; }
+    s.on=false; s.w=0; const so=act.reduce((a,x)=>a+x.w,0);
+    act.forEach(x=>x.w=so>0?x.w/so*100:100/act.length); }
+  return true;
+}
+function buildSpecies(){
+  $('speciesList').innerHTML=SPECIES.map(s=>`
+    <div class="sp ${s.on?'':'off'}" id="sp-${s.id}">
+      <label class="sp-top" for="ck-${s.id}">
+        <input type="checkbox" id="ck-${s.id}" ${s.on?'checked':''}>
+        <span class="sw" style="background:var(${s.c})"></span>
+        <span class="nm">${s.nm}</span>
+        <span class="ev">${s.ev}</span>
+        <span class="pct" id="pc-${s.id}">0%</span>
+      </label>
+      <div class="sci">${s.sci}</div>
+      <input type="range" id="rg-${s.id}" min="0" max="100" step="1" value="${s.w}"
+        style="accent-color:var(${s.c})" aria-label="${s.nm} 혼합 비율 %">
+    </div>`).join('');
+  SPECIES.forEach(s=>{
+    $('ck-'+s.id).addEventListener('change',e=>{
+      if(!toggleSpecies(s,e.target.checked)){ e.target.checked=true; return; }
+      refresh();
+    });
+    $('rg-'+s.id).addEventListener('input',e=>{ setShare(s.id,+e.target.value); refresh(); });
+  });
+}
+function syncMix(){
+  const act=SPECIES.filter(s=>s.on);
+  SPECIES.forEach(s=>{
+    const el=$('sp-'+s.id), rg=$('rg-'+s.id), ck=$('ck-'+s.id);
+    el.classList.toggle('off',!s.on);
+    ck.checked=s.on;
+    rg.disabled=!s.on||act.length<=1;
+    rg.value=Math.round(s.w);
+    $('pc-'+s.id).textContent=(s.on?s.w:0).toFixed(0)+'%';
+  });
+  $('mixbar').innerHTML=act.map(s=>
+    `<span style="background:var(${s.c});width:${s.w}%" title="${s.nm} ${s.w.toFixed(0)}%"></span>`).join('');
+  $('mixCount').textContent=act.length+'종'+(act.length>1?' 혼합':' 단독');
+}
+
+/* ══ 8. 갱신 ═══════════════════════════════════════════════════ */
+const LB={
+  cyl:v=>v.toFixed(1)+' ppm', mfc:v=>v.toFixed(1)+' L/min', tinj:v=>v.toFixed(0)+' s',
+  monMin:v=>v.toFixed(0)+' min',
+  temp:v=>v.toFixed(1)+' °C', rh:v=>v.toFixed(1)+' %', lux:v=>v.toFixed(0)+' lx',
+  irrRate:v=>v.toFixed(1)+' L/min', irrStop:v=>'+'+v.toFixed(0)+' min',
+  nmod:v=>v.toFixed(0)+' 단', uface:v=>v.toFixed(3)+' m/s', bypass:v=>v.toFixed(0)+' %',
+  tcoir:v=>v.toFixed(0)+' mm', tcarbF:v=>v.toFixed(0)+' mm', tcarbR:v=>v.toFixed(0)+' mm',
+  kcoir:v=>v.toFixed(3)+' s⁻¹', kcarb:v=>v.toFixed(3)+' s⁻¹',
+  thetaRes:v=>v<0?'자동 (RH)':v.toFixed(0)+' %',
+  vsurf:v=>v.toFixed(4)+' cm/s', tauDes:v=>v.toFixed(0)+' min', reem:v=>v.toFixed(0)+' %',
+  lod:v=>(v*1000).toFixed(1)+' ppb',
+  vol:v=>v.toFixed(2)+' m³', bg:v=>v.toFixed(3)+' ppm',
+  yield:v=>v.toFixed(2), leach:v=>v.toFixed(0)+' %', rho:v=>v.toFixed(0)+' kg/m³',
+  wc:v=>v.toFixed(1), smass:v=>v.toFixed(0)+' g', evol:v=>v.toFixed(0)+' mL',
+  eeff:v=>v.toFixed(0)+' %', bgno2:v=>v.toFixed(4)+' µmol/g', eps:v=>v.toFixed(0)+' M⁻¹cm⁻¹',
+};
+function refresh(){
+  normalizeMix(); readParams();
+  Object.keys(LB).forEach(k=>{const el=$(k+'V'); if(el) el.textContent=LB[k](parseFloat($(k).value));});
+  syncMix(); buildGeometry();
+  SIM=simulate();
+  ST.playMin=clamp(ST.playMin,-PRE_MIN,P.TEND);
+  buildTimeline(); updateDerived(); updateLive(); updateStatic(); updateColorbar();
+  drawTS(ST.playMin); drawCT(ST.playMin); drawSTD();
+  clearTimeout(refresh._t); refresh._t=setTimeout(()=>{buildTable();renderDocs();},150);
+}
+function buildTimeline(){
+  $('timeline').innerHTML=phaseRanges().map(p=>`
+    <div class="tl-seg">
+      <div class="t mono">${p.a>0?'+':''}${p.a>0&&p.a<1?p.a.toFixed(1):p.a.toFixed(0)} → ${p.b.toFixed(p.b<1?1:0)}</div>
+      <div class="n">${p.n}</div><div class="d">${p.d}</div>
+    </div>`).join('');
+}
+function updateDerived(){
+  const iv=P.mfc*P.tinj/60, tg=iv*P.cyl/(P.V*1000);
+  $('dInjVol').textContent=iv.toFixed(2)+' L';
+  $('dTarget').textContent=tg.toFixed(3)+' ppm';
+  $('dMass').textContent=Math.round(tg*P.ppm2ug)+' µg/m³';
+  $('dTotal').textContent=(PRE_MIN+P.TEND)+' min';
+  $('dEndC').textContent=SIM?SIM.cFinal.toFixed(4)+' ppm':'—';
+  $('dLeaf').textContent=P.leafArea.toFixed(2)+' m²';
+  $('dVd').textContent=P.vdMix.toFixed(3)+' mm/s';
+  $('dLamPlant').textContent=(P.lamPlant*3600).toFixed(3)+' h⁻¹';
+  const dur=PRE_MIN+P.irrStop;
+  $('dIrrDur').textContent=dur.toFixed(0)+' min';
+  $('dIrrVol').textContent=(dur*P.irrRate).toFixed(1)+' L';
+  const L=layerEff(1,0);
+  $('dArea').textContent=P.Aface.toFixed(3)+' m²';
+  $('dSPRE').textContent=(L.spre*100).toFixed(2)+' %';
+  $('dQf').textContent=Math.round(P.Qf*3600)+' m³/h';
+  $('dCADR').textContent=(P.Qf*3600*L.spre).toFixed(1)+' m³/h';
+  $('tlNote').textContent='총 '+(PRE_MIN+P.TEND)+' min · 환기 제외';
+  $('sceneNote').textContent='세로 '+P.nmod+'단 밀폐 · Navier–Stokes 격자 '+NX+'×'+NY;
+}
+function updateLive(){
+  const i=idxAt(ST.playMin);
+  const up=SIM.cUp[i],dn=SIM.cDown[i],ct=SIM.cCtrl[i];
+  $('tDown').innerHTML=dn.toFixed(3)+'<small>ppm</small>';
+  $('tDownMass').textContent=Math.round(dn*P.ppm2ug)+' µg/m³';
+  $('tUp').innerHTML=up.toFixed(3)+'<small>ppm</small>';
+  $('tCtrl').innerHTML=ct.toFixed(3)+'<small>ppm</small>';
+  const eff=SIM.peak>0?(1-up/SIM.peak)*100:0;
+  $('tEff').innerHTML=(ST.playMin<=0?0:Math.max(0,eff)).toFixed(1)+'<small>%</small>';
+  $('tEffD').textContent=ct>1e-4?((1-up/ct)*100).toFixed(1)+' %p 추가 저감':'대조 대비 —';
+  $('tSpre').innerHTML=(SIM.spre[i]*100).toFixed(1)+'<small>%</small>';
+  $('tTheta').textContent='습윤도 '+(SIM.theta[i]*100).toFixed(0)+' %';
+  $('tLam').innerHTML=SIM.lam[i].toFixed(2)+'<small>h⁻¹</small>';
+  $('tHalf').textContent=SIM.lam[i]>0.001?'반감기 '+(0.693/SIM.lam[i]*60).toFixed(1)+' min':'반감기 —';
+  $('tWall').innerHTML=SIM.wall[i].toFixed(1)+'<small>µmol</small>';
+  $('tWallD').textContent='탈착 τ '+P.tauDes+' min';
+  const ph=phaseAt(ST.playMin);
+  $('phaseName').textContent=ph.n;
+  const m=ST.playMin,am=Math.abs(m),mm=Math.floor(am),ss=Math.round((am-mm)*60);
+  $('clock').textContent=(m<0?'−':'+')+String(mm).padStart(2,'0')+':'+String(ss===60?0:ss).padStart(2,'0');
+  document.querySelectorAll('.tl-seg').forEach((el,k)=>el.classList.toggle('active',k===ph.i));
+  $('tlFill').style.width=((m+PRE_MIN)/(P.TEND+PRE_MIN)*100).toFixed(2)+'%';
+}
+function updateStatic(){
+  $('tMaxEff').innerHTML=SIM.maxEff.toFixed(1)+'<small>%</small>';
+  $('tFloor').textContent='평형 잔류 ≈ '+SIM.floor.toFixed(4)+' ppm';
+  $('gCoir').textContent=SIM.cCoir.toFixed(5)+' µmol/g';
+  $('gExt').textContent=SIM.extExp.toFixed(3)+' µM';
+  $('gCtrl').textContent=SIM.extCtl.toFixed(3)+' µM';
+  $('gExp').textContent=SIM.extExp.toFixed(3)+' µM';
+  $('gDelta').textContent=(SIM.extExp-SIM.extCtl).toFixed(3)+' µM';
+  $('gAbsC').textContent=SIM.absCtl.toFixed(4);
+  $('gAbsE').textContent=SIM.absExp.toFixed(4);
+  $('gAbsD').textContent=(SIM.absExp-SIM.absCtl).toFixed(4);
+  renderFlags();
+  const j=SIM.iMon,aT=SIM.aucT[j],aC=SIM.aucC[j],mx=Math.max(aT,aC,1e-6);
+  $('aTreat').textContent=aT.toFixed(2)+' ppm·min';
+  $('aCtrl').textContent=aC.toFixed(2)+' ppm·min';
+  $('bTreat').style.width=(aT/mx*100)+'%';
+  $('bCtrl').style.width=(aC/mx*100)+'%';
+  $('xRed').textContent=aC>1e-6?((1-aT/aC)*100).toFixed(1)+' %':'—';
+  $('xPeak').textContent=SIM.peak.toFixed(3)+' / '+SIM.peakCtrl.toFixed(3)+' ppm';
+  $('xWhoT').textContent=SIM.whoT[j].toFixed(1)+' min';
+  $('xWhoC').textContent=SIM.whoC[j].toFixed(1)+' min';
+  $('xAvg').textContent=(aT/P.TEND).toFixed(4)+' ppm';
+}
+function renderFlags(){
+  const f=[],d=SIM.extExp-SIM.extCtl;
+  if(SIM.extExp>5) f.push(['crit','!',`실험구 예측 <b>${SIM.extExp.toFixed(2)} µM</b>가 표준곡선 상한(5 µM)을 초과합니다. 추출액을 2–5배 희석하거나 표준곡선을 10 µM까지 확장하십시오.`]);
+  else if(d<0.05) f.push(['crit','!',`Δ(실험구−대조구) = <b>${d.toFixed(3)} µM</b>로 Griess 검출한계(≈0.05 µM) 부근입니다. 샘플 질량 증량·추출액 감량·주입 농도 상향이 필요합니다.`]);
+  else if(d<0.5) f.push(['warn','!',`Δ = <b>${d.toFixed(3)} µM</b>로 표준곡선 최하단입니다. 샘플 질량 ${(P.smass*2).toFixed(0)} g 또는 추출액 ${(P.evol/2).toFixed(0)} mL로 조정을 권장합니다.`]);
+  else f.push(['ok','✓',`Δ = <b>${d.toFixed(3)} µM</b>로 표준곡선(0–5 µM) 내 정량 가능 구간입니다. ΔA₅₄₈ = ${(SIM.absExp-SIM.absCtl).toFixed(4)}.`]);
+  if(SIM.maxEff<99.5) f.push(['ok','✓',`가역 흡착·재방출로 달성 가능한 최대 제거율은 <b>${SIM.maxEff.toFixed(1)} %</b>이며, 준평형 잔류농도는 약 <b>${SIM.floor.toFixed(4)} ppm</b>입니다. 벽면·매질에 흡착된 NO₂가 되돌아 나오므로 100 % 정화는 원리적으로 불가능합니다.`]);
+  if(P.leach>0) f.push(['warn','!',`관수 중 생성 NO₂⁻의 <b>${P.leach.toFixed(0)}%</b>가 배수로 용탈됩니다. 배수를 함께 정량하면 질소 수지를 닫을 수 있습니다.`]);
+  $('gFlags').innerHTML=f.map(([k,ic,t])=>`<div class="flag ${k}"><span class="ic">${ic}</span><span>${t}</span></div>`).join('');
+}
+
+/* ══ 9. 재생 ═══════════════════════════════════════════════════
+   루프는 절대 죽지 않아야 한다. 예외가 나도 다음 프레임을 반드시 예약하고,
+   그래도 멈추면 워치독이 1초마다 되살린다.                        */
+let loopId=0, lastFrame=0;
+function showErr(e){
+  const b=$('errBar'); if(!b) return;
+  b.textContent='오류: '+(e&&e.message||e)+' — 계속 실행 중입니다. 이 문구를 알려주시면 고치겠습니다.';
+  b.hidden=false;
+}
+function tick(now){
+  lastFrame=performance.now();
+  try{
+    let el=(now-ST.last)/1000; if(!isFinite(el)||el<0) el=0; ST.last=now;
+    const dr=Math.min(el,0.05);        // 유동 적분은 안정성 때문에 0.05 s 로 제한
+    const drSim=Math.min(el,2.0);      // 재생 시계는 최대 2초까지 따라잡는다
+    if(ST.playing){
+      ST.playMin+=drSim*ST.speed/60;
+      if(ST.playMin>=P.TEND){ST.playMin=P.TEND;setPlaying(false);}
+      updateLive(); drawTS(ST.playMin); drawCT(ST.playMin);
+    }
+    const i=idxAt(ST.playMin);
+    ST.acc+=dr;
+    if(ST.acc>1/32){
+      const bulk=SIM.peak>0?clamp(SIM.cUp[i]/SIM.peak,0,1):0;
+      const fdt=Math.min(0.06,ST.acc);
+      const Lk=layerEff(SIM.theta[i], SIM.load*(i/SIM.N));
+      fluidStep(fdt, bulk, SIM.t[i]>=0&&SIM.t[i]<P.tinj, FL.effOf?FL.effOf(Lk):null);
+      if(ST.ov.part) stepParticles(fdt*2.2, 260, 0.10+P.uface*1.1);
+      if(ST.ov.stream&&Math.random()<0.10) computeStreamlines();
+      ST.acc=0;
+    }
+    drawScene(i,dr*(ST.playing?1:0.4));
+  }catch(e){ showErr(e); }
+  loopId=requestAnimationFrame(tick);
+}
+/* resetClock=true 일 때만 시계 기준을 현재로 옮긴다.
+   워치독·탭 복귀에서 기준을 옮기면 경과 시간이 통째로 버려져 시계가 멈춘다. */
+function restartLoop(resetClock){
+  cancelAnimationFrame(loopId);
+  lastFrame=performance.now();
+  if(resetClock) ST.last=lastFrame;
+  loopId=requestAnimationFrame(tick);
+}
+function setPlaying(v){
+  ST.playing=v;
+  $('playBtn').innerHTML=v?'❚❚ 일시정지':(ST.playMin>=P.TEND?'↻ 다시 재생':'▶ 시작');
+  $('playBtn').classList.toggle('primary',true);
+}
+
+/* ══ 10. 초기화 ════════════════════════════════════════════════ */
+function init(){
+  buildSpecies();
+  document.querySelectorAll('input[type=range],select').forEach(el=>{
+    if(el.id.startsWith('rg-')) return;
+    el.addEventListener('input',refresh); el.addEventListener('change',refresh);
+  });
+  $('tabs').addEventListener('click',e=>{
+    const b=e.target.closest('button[role=tab]'); if(!b) return;
+    document.querySelectorAll('#tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));
+    document.querySelectorAll('.pane').forEach(p=>p.hidden=(p.id!=='pane-'+b.dataset.tab));
+  });
+  $('playBtn').addEventListener('click',()=>{
+    if(ST.playMin>=P.TEND) ST.playMin=-PRE_MIN;
+    setPlaying(!ST.playing);
+  });
+  $('resetBtn').addEventListener('click',()=>{
+    ST.playMin=-PRE_MIN; drops.length=0;
+    // 유동장은 유지하고 농도장만 균일 배경값으로 되돌린다.
+    // (0으로 비우면 다음 스텝의 정규화가 유입구에 가짜 플룸을 만든다)
+    resetField(SIM.peak>0?clamp(SIM.cUp[idxAt(-PRE_MIN)]/SIM.peak,0,1):0);
+    updateLive(); drawTS(ST.playMin); drawCT(ST.playMin);
+    setPlaying(true); restartLoop(true);  // 리셋은 곧바로 처음부터 다시 재생
+  });
+  document.querySelectorAll('.transport .seg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.transport .seg button').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true'); ST.speed=+b.dataset.speed; }));
+  document.querySelectorAll('.viewbar .seg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.viewbar .seg button').forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true'); ST.field=b.dataset.field; updateColorbar(); }));
+  document.querySelectorAll('.chip[data-ov]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.dataset.ov; ST.ov[k]=!ST.ov[k]; b.setAttribute('aria-pressed',String(ST.ov[k]));
+    if(k==='stream'&&ST.ov.stream) computeStreamlines(); }));
+  $('tsTableBtn').addEventListener('click',e=>{
+    ST.table=!ST.table; e.currentTarget.setAttribute('aria-pressed',String(ST.table));
+    $('tsWrap').hidden=ST.table; $('tsTable').hidden=!ST.table;
+    if(!ST.table) drawTS(ST.playMin); });
+
+  refresh(); bindTip();
+  // 유동장 예열 — 첫 프레임부터 발달된 유동이 보이도록
+  const L0=layerEff(1,0);
+  for(let n=0;n<60;n++) fluidStep(0.05,0.55,false,FL.effOf?FL.effOf(L0):null);
+  computeStreamlines();
+  ST.playMin=-PRE_MIN; updateLive(); drawTS(ST.playMin); drawCT(ST.playMin);
+  clearTimeout(refresh._t); buildTable(); renderDocs();
+  setPlaying(true);                      // 열자마자 −05:00부터 자동 재생
+
+  let rt; addEventListener('resize',()=>{clearTimeout(rt);
+    rt=setTimeout(()=>{drawTS(ST.playMin);drawCT(ST.playMin);drawSTD();},120);});
+  const repaint=()=>setTimeout(()=>{flushVars();lutKey='';
+    drawTS(ST.playMin);drawCT(ST.playMin);drawSTD();updateColorbar();},60);
+  const mq=matchMedia('(prefers-color-scheme:dark)');
+  if(mq.addEventListener) mq.addEventListener('change',repaint);
+  new MutationObserver(repaint).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  restartLoop(true);
+  // 워치독 — 탭 전환·스로틀링·예기치 못한 중단으로 rAF가 끊기면 되살린다.
+  // 시계 기준은 건드리지 않으므로 숨겨져 있던 동안의 시간도 복귀 시 반영된다.
+  setInterval(()=>{ if(performance.now()-lastFrame>1500) restartLoop(false); },1000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) restartLoop(false); });
+}
+
+/* ══ 11. 문서 ══════════════════════════════════════════════════ */
+function renderDocs(){
+  const L=layerEff(1,0), Ld=layerEff(P.thetaR,0);
+  const lamMedia=P.Qf*L.spre/P.V*3600, lamPl=P.lamPlant*3600, lamAd=SIM.kAds;
+  const tot=SIM.cumP[SIM.N-1]+SIM.cumC[SIM.N-1]+SIM.cumA[SIM.N-1]+SIM.cumS[SIM.N-1];
+  $('docBody').innerHTML=`
+<h4>1. 지배방정식 — 가역 흡착을 포함한 폐쇄 순환 챔버</h4>
+<p>챔버를 완전혼합조(CSTR)로 두고, 기체상 농도 <code>C</code>[ppm]와 <b>벽면 흡착 저장고 M<sub>s</sub></b>, <b>매질 가역 저장고 M<sub>m</sub></b>[µmol]을 연립 적분합니다. 저장고에서 되돌아 나오는 항이 있기 때문에 <b>정화율은 구조적으로 100 %에 도달할 수 없습니다</b>.</p>
+<span class="eq">dC/dt  = S(t)/V − (λ_filter + λ_plant + k_ads)·C + (k_des·M_s + k_reem·M_m)/n_ppm
+dM_s/dt = k_ads·C·n_ppm − k_des·M_s          k_des = 1/τ_des = 1/${P.tauDes} min
+dM_m/dt = f_reem·(코이어 포집) − k_reem·M_m   f_reem = ${(P.reem*100).toFixed(0)} %, τ_reem = ${TAU_REEM} min
+n_ppm  = V·1000/V_m = ${P.ppm2umol.toFixed(1)} µmol per ppm</span>
+<p>준평형에서 재방출과 제거가 균형을 이루는 <b>바닥농도</b>가 형성됩니다. 현재 조건에서 <code>C_floor ≈ ${SIM.floor.toFixed(4)} ppm</code>, 모니터링 종료 시점 <b>달성 최대 제거율 ${SIM.maxEff.toFixed(1)} %</b>입니다. 여기에 Serinus 40 검출한계 <code>${(P.lod*1000).toFixed(1)} ppb</code>가 표시 하한으로 적용됩니다.</p>
+<div class="flag ok"><span class="ic">✓</span><span><b>왜 100 %가 불가능한가</b> — ① 스테인리스·아크릴 벽면에 흡착된 NO₂가 τ<sub>des</sub> 시정수로 탈착되어 되돌아오고, ② 습윤 코이어에 포집된 질소 일부가 HONO 형태로 재방출되며, ③ 분석기 자체의 검출한계 아래는 “0”으로 읽히지 않습니다. 세 항 모두 조절 가능한 파라미터로 노출되어 있습니다(고급 탭).</span></div>
+
+<h4>2. 바이오필터 — 세로 ${P.nmod}단 적층 벽 · 전단면 차단</h4>
+<p>모듈(451 × 951)을 <b>세로로 맞붙여 하나의 벽</b>을 이루고, 그 벽이 챔버 단면을 빈틈없이 차단합니다. 따라서 <b>우회 경로가 없고</b>, 공기는 반드시 한 모듈의 4개 층을 <b>기류 방향 직렬</b>로 통과해야 후단에 도달합니다. 적층 수를 늘리면 <b>여재 단면적이 커져 처리 풍량 Q<sub>f</sub>가 비례 증가</b>하며, 단일통과 효율 자체는 층 구성으로만 결정됩니다.</p>
+<span class="eq">E_layer = 1 − exp(−k_v·L/u)                u = ${P.uface.toFixed(3)} m/s (면속도)
+SPRE = [1 − (1−E₁)(1−E₂)(1−E₃)(1−E₄)] × (1 − bypass) = ${(L.spre*100).toFixed(2)} %
+A_face = 0.451 × 0.951 × ${P.nmod} = ${P.Aface.toFixed(3)} m²
+Q_f = A_face·u = ${(P.Qf*3600).toFixed(0)} m³/h      λ_filter = Q_f·SPRE/V = ${lamMedia.toFixed(3)} h⁻¹</span>
+<div class="tblwrap"><table class="ref">
+<thead><tr><th>층 (기류 순서)</th><th>두께</th><th>k<sub>v</sub> 습윤</th><th>τ</th><th>E 습윤</th><th>E 무관수 θ=${P.thetaR.toFixed(2)}</th></tr></thead><tbody>
+<tr><td>① Carbon filter 전면</td><td class="n">${P.tcarbF} mm</td><td class="n">${P.kcarb.toFixed(3)} s⁻¹</td><td class="n">${(P.tcarbF/1000/P.uface).toFixed(3)} s</td><td class="n">${(L.eF*100).toFixed(2)} %</td><td class="n">${(Ld.eF*100).toFixed(2)} %</td></tr>
+<tr><td>② CoCo Coir 배지필터</td><td class="n">${P.tcoir} mm</td><td class="n">${P.kcoir.toFixed(3)} s⁻¹</td><td class="n">${(P.tcoir/1000/P.uface).toFixed(3)} s</td><td class="n">${(L.eC*100).toFixed(2)} %</td><td class="n">${(Ld.eC*100).toFixed(2)} %</td></tr>
+<tr><td>③④ Carbon filter 후면 ×2</td><td class="n">${P.tcarbR} mm</td><td class="n">${P.kcarb.toFixed(3)} s⁻¹</td><td class="n">${(P.tcarbR/1000/P.uface).toFixed(3)} s</td><td class="n">${(L.eR*100).toFixed(2)} %</td><td class="n">${(Ld.eR*100).toFixed(2)} %</td></tr>
+</tbody></table></div>
+<p>기질 습윤도 <code>θ</code>는 관수 중 1.0, 중단 후 <code>θ = θ_res + (1−θ_res)·exp(−Δt/${TAU_DRY} min)</code>로 감소하며 코이어 반응속도에 <code>k_v·(0.25+0.75θ)</code>로 반영됩니다(현재 θ_res = <b>${P.thetaR.toFixed(2)}</b>). 관수 시 NO₂ 제거효율이 무관수 대비 약 2배라는 능동형 그린월 보고와 정합합니다.</p>
+
+<h4>3. 유동장 가시화의 지위 — 무엇이 계산되고 무엇이 처방인가</h4>
+<p>가시화 패널은 <b>${NX}×${NY} 격자에서 2D 비압축 Navier–Stokes를 실제로 적분</b>합니다(반라그랑주 이류 + Red-Black Gauss–Seidel SOR 압력투영 ω=1.86 · 60회, 다공질 셀에 Darcy 항력). 여기서 얻는 것은 <b>공간 분포·재순환 구조·필터 전후 감속</b>이며, 유선·속도벡터·와도장이 그 결과입니다.</p>
+<p>다만 <b>정량 수치(농도·제거율·µmol)는 전부 위 0-D 질량수지가 결정</b>하고, 농도장은 매 스텝 벌크 평균이 0-D 값과 일치하도록 정규화됩니다. 즉 이 패널은 <b>“검증된 총량을 공간적으로 어떻게 배분하는가”</b>를 보여주는 것이지, 3D 난류 CFD 해석 결과가 아닙니다. 난류 모델·3D 효과·열부력은 포함되어 있지 않습니다.</p>
+
+<h4>4. 식물 기공 흡수 (${P.mix.length}종 ${P.mix.length>1?'혼합':'단독'})</h4>
+<span class="eq">λ_plant = n_mod · Σ xᵢ·a_leaf,ᵢ·v_d,ᵢ·f_light,ᵢ · f_RH · f_T / V = ${lamPl.toFixed(3)} h⁻¹
+f_RH = 0.7 + 0.6·RH/100 = ${P.fRH.toFixed(3)}     f_T = exp(0.035·(T−19)) = ${P.fT.toFixed(3)}
+가중 엽면적 ${P.leafArea.toFixed(2)} m²   가중 침착속도 ${P.vdMix.toFixed(3)} mm/s</span>
+<div class="tblwrap"><table class="ref">
+<thead><tr><th>식물</th><th>학명</th><th>근거 등급</th><th>혼합비</th><th>v<sub>d</sub> mm/s</th><th>엽면적 m²/모듈</th><th>광의존도</th><th>특성</th></tr></thead><tbody>
+${SPECIES.map(s=>`<tr${s.on?' style="background:var(--accent-2)"':''}><td><b>${s.nm}</b></td><td><i>${s.sci}</i></td><td>${s.ev}</td><td class="n">${s.on?s.w.toFixed(0)+' %':'—'}</td><td class="n">${s.vd.toFixed(2)}</td><td class="n">${s.leaf.toFixed(2)}</td><td class="n">${s.d.toFixed(2)}</td><td>${s.note}</td></tr>`).join('')}
+</tbody></table></div>
+<div class="flag warn"><span class="ic">!</span><span><b>종 선정 근거에 대한 주의</b> — 흔히 인용되는 “공기정화식물 순위”(NASA 목록, 농촌진흥청 포름알데히드·미세먼지 순위)는 <b>포름알데히드·VOC·PM 기준</b>이며 <b>NO₂ 제거능의 유효한 대리지표가 아닙니다</b>. NO₂는 기공을 통해 흡수되어 아포플라스트에서 아질산·질산으로 전환되는 별도 경로이기 때문입니다. 따라서 본 목록은 <b>NO₂ 챔버 실험이 직접 보고된 종</b>(맛상게아나·스파티필름·금전수·싱고니움)을 우선 배치하고, 나머지는 엽면적·증산·기공 특성이 우수해 생물여과 적용성이 높은 종으로 구성했습니다. 논문에 인용하실 때 이 구분을 유지하시길 권합니다.</span></div>
+<p>v<sub>d</sub>는 실측 보고 범위(수종별 0–3.6 mm/s, 기공전도도와 동조하되 엽육 저항으로 상한 제약)의 <b>저광 실내식물 구간</b>을 기공밀도·큐티클 두께로 차등 배분한 값입니다. Gubb 2022에서 <i>식물 + 배지</i> 계가 1시간에 NO₂ 47–62 %를 제거했다는 결과를 상한 기준으로, <b>배지 기여를 분리한 잎 단독 값</b>으로 보정했습니다. <b>종 간 상대 서열은 문헌 기반이나 절대값은 반드시 보정 대상</b>입니다.</p>
+
+<h4>5. 아질산염 생성 · Griess 정량 연동</h4>
+<p>습윤 코이어 표면의 불균일 가수분해 <code>2NO₂ + H₂O → NO₂⁻ + NO₃⁻ + 2H⁺</code>를 전환수율 <code>Y</code>로 집약했습니다(이론 상한 0.50). <b>코이어 층이 포집한 분량에서 재방출분을 뺀 값만</b>이 NO₂⁻ 기여이며, 식물 기공 흡수분(엽육 잔류)과 Carbon 흡착분은 제외됩니다 — 이것이 본 실험의 경로 분리 지점입니다.</p>
+<span class="eq">NO₂⁻ = Y·(1−f_reem)·Σ(코이어 포집) − 관수 용탈      = ${SIM.nitrite.toFixed(2)} µmol
+c_coir = NO₂⁻ / m_coir = ${SIM.cCoir.toFixed(5)} µmol/g      m_coir = ${(SIM.mCoir/1000).toFixed(3)} kg 건조
+C_추출액 = (c_coir + c_bg)·m_건조·η / V_추출 = ${SIM.extExp.toFixed(3)} µM   (건조 환산 ${SIM.dryMass.toFixed(2)} g)
+A₅₄₈ = ε·(C_추출액 × 1500/15000)·5 cm = ${SIM.absExp.toFixed(4)}</span>
+<p><b>희석 구조</b>: 표준곡선·시료 모두 DW 13,000 + 시료 1,500 + Griess 500 = 15,000 µL로 동일하게 10배 희석되므로 표준곡선 x축(0–5 µM)은 <b>추출액 농도</b>를 직접 읽습니다. 큐벳 내 실제 발색 농도는 0–0.5 µM이며, 이 낮은 농도에서 흡광도를 측정 가능하게 만드는 것이 <b>50 mm 큐벳</b>(1 cm 대비 5배 감도)의 역할입니다.</p>
+
+<h4>6. 현재 조건 수지 요약</h4>
+<div class="tblwrap"><table class="ref"><thead><tr><th>항목</th><th>값</th><th>비고</th></tr></thead><tbody>
+<tr><td>λ<sub>plant</sub></td><td class="n">${lamPl.toFixed(3)} h⁻¹</td><td>유효 엽면적 ${P.leafArea.toFixed(2)} m²</td></tr>
+<tr><td>λ<sub>filter</sub> (습윤)</td><td class="n">${lamMedia.toFixed(3)} h⁻¹</td><td>CADR ${(P.Qf*3600*L.spre).toFixed(1)} m³/h</td></tr>
+<tr><td>k<sub>ads</sub> (벽면 흡착)</td><td class="n">${lamAd.toFixed(3)} h⁻¹</td><td>가역 — τ<sub>des</sub> ${P.tauDes} min로 재방출</td></tr>
+<tr><td><b>λ<sub>total</sub></b></td><td class="n"><b>${(lamPl+lamMedia+lamAd).toFixed(3)} h⁻¹</b></td><td>반감기 ${(0.693/(lamPl+lamMedia+lamAd)*60).toFixed(1)} min</td></tr>
+<tr><td>실험 종료 (처리 / 대조)</td><td class="n">${SIM.cUp[SIM.iMon].toFixed(4)} / ${SIM.cCtrl[SIM.iMon].toFixed(4)} ppm</td><td>제거율 ${SIM.maxEff.toFixed(1)} %</td></tr>
+<tr><td>종료 후 환기</td><td class="n">모델 제외</td><td>다음 차수 이월 방지용 — 계획서 기준 총 4시간 이상</td></tr>
+<tr><td>코이어 포집 NO₂</td><td class="n">${SIM.cumC[SIM.N-1].toFixed(2)} µmol</td><td>전체 제거량의 ${tot>0?(SIM.cumC[SIM.N-1]/tot*100).toFixed(0):0} %</td></tr>
+<tr><td>벽면 흡착 최대</td><td class="n">${SIM.wall[SIM.iMon].toFixed(2)} µmol</td><td>재방출원 — 꼬리 농도의 원인</td></tr>
+<tr><td>Carbon 포화도</td><td class="n">${(SIM.load/Q_MAX*100).toFixed(2)} %</td><td>1회 실험 기준 — 파과는 수십 회 누적 후</td></tr>
+</tbody></table></div>
+
+<h4>7. 계획서 정합성 점검</h4>
+<div class="flag warn"><span class="ic">!</span><span><b>가스 유량 단위</b> — 조건표는 “유량 10 L/h”, 절차 5는 “분당 10 L씩 40초간 주입(10 L/h)”으로 충돌합니다. <b>10 L/min</b>이라야 40초 주입 시 6.67 L → 0.593 ppm으로 목표 0.6 ppm과 일치합니다(10 L/h면 0.010 ppm). 표기를 L/min으로 통일하십시오.</span></div>
+<div class="flag warn"><span class="ic">!</span><span><b>관수량 정합</b> — “2 L/min × 총 35분”이면 70 L이나 계획서 총량은 “약 57 L”입니다(57 ÷ 35 ≈ 1.63 L/min). 현재 설정 기준 <b>${((PRE_MIN+P.irrStop)*P.irrRate).toFixed(1)} L</b>. 셋 중 하나를 실측 확정해야 습윤도 이력이 정확해집니다.</span></div>
+<div class="flag warn"><span class="ic">!</span><span><b>샘플 칭량 기준</b> — 225×100×10 mm 코이어 1편은 건조 기준 약 ${(0.225*0.100*(P.tcoir/1000)*P.rho*1000).toFixed(0)} g입니다. “50 g”이 습윤 기준이면 건조 환산 ${SIM.dryMass.toFixed(1)} g으로 신호가 크게 낮아지므로 칭량 기준과 함수율을 반드시 기록하십시오. 현재 <b>${P.basis==='wet'?'습윤':'건조'} 기준</b> 계산 중.</span></div>
+<div class="flag ok"><span class="ic">✓</span><span><b>표준용액 계열 검증</b> — 1 mM 원액 기준 1.5 / 3 / 6 / 9 / 15 µL를 3,000 µL에 희석하면 정확히 0.5 / 1 / 2 / 3 / 5 µM로 계획서 표와 일치합니다. Griess 시약 4 mL(이론 3 mL + 여유분)도 6점 × 500 µL를 충족합니다.</span></div>
+
+<h4>8. 모델 보정 절차</h4>
+<ul>
+<li><b>① 공챔버 시험</b>(무식재·무필터)으로 <code>v_d,surface</code>와 <code>τ_des</code>를 먼저 확정합니다. 감쇠 후반의 <b>꼬리 기울기</b>가 τ<sub>des</sub>를, 초기 기울기가 k<sub>ads</sub>를 줍니다.</li>
+<li><b>② 관수 구간</b>의 ln C 기울기로 λ<sub>total</sub>를 구하고, λ<sub>plant</sub> 고정 상태에서 <code>k_v,coir</code>를 맞춥니다.</li>
+<li><b>③ 무관수 구간</b>의 기울기 변화로 <code>θ_res</code>와 τ<sub>건조</sub>를 확정합니다.</li>
+<li><b>④ 실험 2의 NO₂⁻ 실측</b>으로 <code>Y</code>·재방출 분율·용탈률을 역산합니다. 배수 시료를 함께 분석하면 질소 수지가 닫혀 불확실성이 크게 줄어듭니다.</li>
+<li><b>⑤ 단일종 실험</b>을 스킨답서스·맛상게아나·고무나무 각각 수행해 v<sub>d</sub> 상대 서열을 검증한 뒤 혼합 조건을 예측하십시오.</li>
+</ul>
+
+<h4>9. 문헌 앵커</h4>
+<ul>
+<li>Matheson S, Fleck R, Pettit T, Irga PJ, Torpy FR (2025) <i>Active botanical biofilters for nitrogen dioxide and ozone removal using granular activated carbon.</i> Int J Phytoremediation 27(11):1589–1601 — NO₂ 지수감쇠, 50 % GAC 습윤 기질 최고 감쇠율 0.27 ± 0.048 ppb·s⁻¹, CADR 1,013 ± 173 m³·h⁻¹·m⁻³ 기질, 공시 2종 간 유의차 없음. <a href="https://pubmed.ncbi.nlm.nih.gov/40488388/" target="_blank" rel="noopener">PubMed</a></li>
+<li>능동형 그린월 폐루프 반응기 NO₂ 저감 — 단일통과 제거효율 평균 63.2 %, <b>관수 52.5 % vs 무관수 23.9 %</b>. 습윤도 의존 구조의 근거. <a href="https://www.mdpi.com/2073-4433/10/12/801" target="_blank" rel="noopener">Atmosphere 10(12):801</a></li>
+<li>Gubb C, Blanusa T, Griffiths A, Pfrang C (2022) <i>Potted plants can remove the pollutant nitrogen dioxide indoors.</i> Air Qual Atmos Health 15:479–490 — <i>Spathiphyllum wallisii</i> · <i>Dracaena fragrans</i> · <i>Zamioculcas zamiifolia</i>를 150 L 챔버·100 ppb·0/500 lx·습윤/건조 배지에서 비교. <b>식물+배지 계가 1시간에 47–62 % 제거</b>, <i>D. fragrans</i> 최상위. 본 시뮬레이터 식물 3종의 직접 근거. <a href="https://centaur.reading.ac.uk/104058/" target="_blank" rel="noopener">CentAUR</a></li>
+<li>엽면 NO₂ 침착속도 실측 0–3.6 mm·s⁻¹, 기공전도도 일주기와 동조하되 엽육 저항으로 예측 미만. <a href="https://acp.copernicus.org/articles/20/14023/2020/" target="_blank" rel="noopener">Atmos Chem Phys 20:14023</a></li>
+<li>Stam J (1999) <i>Stable Fluids.</i> SIGGRAPH — 본 가시화의 반라그랑주 이류·압력투영 알고리즘 출처.</li>
+</ul>
+<p style="margin-top:12px;color:var(--ink-3)">모델 구조는 문헌 기반이나 <b>속도상수 기본값은 본 장비 실측으로 보정하기 전까지 설계 검토용</b>입니다. λ<sub>filter</sub>는 면속도·기질 두께·조성에 민감하므로 ①–③ 절차를 거친 뒤 결과를 인용하십시오.</p>`;
+}
+init();
+</script>
+</body>
+</html>

@@ -255,6 +255,7 @@ table.ref td.n{text-align:right;font-family:"IBM Plex Mono",monospace;font-varia
       <button type="button" data-speed="10" aria-pressed="true">10×</button>
       <button type="button" data-speed="50" aria-pressed="false">50×</button>
       <button type="button" data-speed="100" aria-pressed="false">100×</button>
+      <button type="button" data-speed="360" aria-pressed="false" title="모니터링 60분을 약 10초에">360×</button>
     </div>
     <button type="button" class="btn primary" id="playBtn">▶ 시작</button>
     <button type="button" class="btn" id="resetBtn">↺ 리셋</button>
@@ -775,8 +776,13 @@ const FL={
   fixed:new Uint8Array(NN),                           // 고체 + 속도지정 셀
   lidx:new Uint8Array(NN),                            // 층 번호 0~3 (9 = 층 아님)
   lrate:new Float32Array(NN),                         // 역체류시간 u/w  [1/s]
-  inlet:[20,43], ready:false
+  inlet:[20,43], ready:false, ventOn:false
 };
+/* 환기 시 천장 개구부 (격자 i). 좌측은 외기 유입, 우측은 배출.
+   여재 벽이 i 58~71 근처이므로 개구부는 그 양쪽에 놓인다.
+   drawVent() 가 gx() 로 같은 좌표를 써서 그리므로 화면과 항상 일치한다. */
+const VENT_L=[16,54], VENT_R=[73,111];
+const inSpan=(i,s)=>i>=s[0]&&i<=s[1];
 const PART=[]; let STREAM=[];
 
 /* 기하 구성 — 모듈을 세로로 맞붙여 하나의 벽을 이루고, 그 벽이 단면을 전부 차단.
@@ -807,23 +813,47 @@ function buildGeometry(){
   FL.etag=layers.map(l=>l.e);
   FL.effOf=L=>FL.etag.map(t=>t==='F'?L.eF:t==='C'?L.eC:L.eR);
   FL.splits=Array.from({length:clamp(P.nmod,1,4)-1},(_,i)=>(i+1)/clamp(P.nmod,1,4));
-  // 상·하 벽 + 덕트 개구부 밖의 좌·우 벽 (개구부는 중앙 밴드뿐)
-  for(let i=0;i<NX;i++){ FL.solid[IX(i,0)]=1; FL.solid[IX(i,NY-1)]=1; }
-  for(let j=1;j<NY-1;j++){
-    if(j<FL.inlet[0]||j>FL.inlet[1]){ FL.solid[IX(0,j)]=1; FL.solid[IX(NX-1,j)]=1; }
+  // 경계 — 환기 중이면 천장을 열고 덕트 댐퍼를 닫는다. 평상시는 그 반대.
+  const vent=FL.ventOn;
+  for(let i=0;i<NX;i++){
+    FL.solid[IX(i,0)]=(vent&&(inSpan(i,VENT_L)||inSpan(i,VENT_R)))?0:1;
+    FL.solid[IX(i,NY-1)]=1;
   }
-  // 압력 방정식에서 미러 처리할 셀: 고체 + 유입구(속도 지정)
+  for(let j=1;j<NY-1;j++){
+    const open=!vent&&j>=FL.inlet[0]&&j<=FL.inlet[1];
+    FL.solid[IX(0,j)]=open?0:1; FL.solid[IX(NX-1,j)]=open?0:1;
+  }
+  // 압력 방정식에서 미러 처리할 셀: 고체 + 속도지정 유입구.
+  // 배출구는 fixed 가 아니어서 p=0 Dirichlet 이 되고, 그래서 자유유출이 된다.
   FL.fixed.set(FL.solid);
-  for(let j=FL.inlet[0];j<=FL.inlet[1];j++){ FL.fixed[IX(0,j)]=1; FL.fixed[IX(1,j)]=1; }
+  if(vent){
+    for(let i=VENT_L[0];i<=VENT_L[1];i++){ FL.fixed[IX(i,0)]=1; FL.fixed[IX(i,1)]=1; }
+  }else{
+    for(let j=FL.inlet[0];j<=FL.inlet[1];j++){ FL.fixed[IX(0,j)]=1; FL.fixed[IX(1,j)]=1; }
+  }
   FL.ready=true;
 }
 /* 경계조건 — 투영 전후로 반드시 다시 강제해야 유입 구동력이 유지된다 */
 function applyBC(){
   const uIn=16+220*P.uface, [ja,jb]=FL.inlet;
-  for(let j=ja;j<=jb;j++){
-    FL.u[IX(0,j)]=uIn; FL.v[IX(0,j)]=0;
-    FL.u[IX(1,j)]=uIn; FL.v[IX(1,j)]=0;
-    const k=IX(NX-1,j); FL.u[k]=FL.u[k-1]; FL.v[k]=FL.v[k-1];   // 자유유출
+  if(FL.ventOn){
+    // 환기 — 순환 댐퍼를 닫았으므로 좌우 덕트 구동력이 없다.
+    // 좌측 천장으로 외기가 내려오고 우측 천장으로 내기가 빠져나간다.
+    const w=uIn*0.5;
+    for(let i=VENT_L[0];i<=VENT_L[1];i++){
+      FL.u[IX(i,0)]=0; FL.v[IX(i,0)]=w;
+      FL.u[IX(i,1)]=0; FL.v[IX(i,1)]=w;
+    }
+    for(let i=VENT_R[0];i<=VENT_R[1];i++){
+      const k=IX(i,0);                      // 자유유출 — v<0 이 위로 빠지는 방향
+      FL.u[k]=FL.u[k+NX]; FL.v[k]=Math.min(FL.v[k+NX],0);
+    }
+  }else{
+    for(let j=ja;j<=jb;j++){
+      FL.u[IX(0,j)]=uIn; FL.v[IX(0,j)]=0;
+      FL.u[IX(1,j)]=uIn; FL.v[IX(1,j)]=0;
+      const k=IX(NX-1,j); FL.u[k]=FL.u[k-1]; FL.v[k]=FL.v[k-1];   // 자유유출
+    }
   }
   for(let k=0;k<NN;k++) if(FL.solid[k]){ FL.u[k]=0; FL.v[k]=0; }
 }
@@ -875,7 +905,13 @@ function fluidStep(dt, bulk, injecting, eff){
   const {u,v,u0,v0,dn,dn0,drag,solid,lidx,lrate}=FL;
   const [ja,jb]=FL.inlet;
   applyBC();
-  for(let j=ja;j<=jb;j++){ dn[IX(0,j)]=injecting?1:bulk; dn[IX(1,j)]=injecting?1:bulk; }
+  // 유입 경계의 스칼라. 환기 중 들어오는 것은 외기이므로 배경 농도로 넣는다.
+  if(FL.ventOn){
+    const fresh=cleanLevel();
+    for(let i=VENT_L[0];i<=VENT_L[1];i++){ dn[IX(i,0)]=fresh; dn[IX(i,1)]=fresh; }
+  }else{
+    for(let j=ja;j<=jb;j++){ dn[IX(0,j)]=injecting?1:bulk; dn[IX(1,j)]=injecting?1:bulk; }
+  }
   for(let k=0;k<NN;k++) if(drag[k]>0){ const f=1/(1+drag[k]*dt); u[k]*=f; v[k]*=f; }
   u0.set(u); v0.set(v);
   advect(u,u0,u0,v0,dt); advect(v,v0,u0,v0,dt);
@@ -897,6 +933,8 @@ function fluidStep(dt, bulk, injecting, eff){
     else if(FL.kind[k]===3) dn[k]*=Math.exp(-0.12*dt*clamp(P.lamPlant/3e-4,0,2));
   }
   for(let j=1;j<NY-1;j++){ const k=IX(NX-1,j); if(!solid[k]) dn[k]=dn[k-1]; }
+  // 환기 배출구 — 천장 밖으로 그대로 흘려보낸다
+  if(FL.ventOn) for(let i=VENT_R[0];i<=VENT_R[1];i++){ const k=IX(i,0); dn[k]=dn[k+NX]; }
   // 벌크 정규화 — 정량값은 0-D 모델이 결정.
   // 게인을 좁게 제한해야 장이 비어 있을 때 유입구에서 가짜 플룸이 생기지 않는다.
   let s=0,c=0;
@@ -908,30 +946,67 @@ function fluidStep(dt, bulk, injecting, eff){
 }
 function resetField(bulk){ FL.dn.fill(bulk); PART.forEach(seedParticle); }
 
+/* 리셋 직후에는 재생이 멈춰 있어 입자가 유입구에 뭉쳐 있으면 어색하다.
+   챔버 전체에 흩뿌려야 정지 상태에서도 공기가 들어찬 것처럼 보인다.
+   환기로 입자가 전부 빠져나간 뒤 리셋하는 경우도 이걸로 복구된다. */
+function scatterParticles(count){
+  PART.length=0;
+  let guard=0;
+  while(PART.length<count&&guard++<count*40){
+    const x=1+Math.random()*(NX-3), y=1+Math.random()*(NY-3);
+    if(FL.solid[IX(x|0,y|0)]) continue;
+    PART.push({mode:'field',x,y,s:0,lane:0,age:Math.random()*10,dead:false});
+  }
+}
+
 /* 입자 — 챔버 안은 유동장을 따라가고, 출구를 지나면 순환 덕트를 돌아 유입구로 복귀 */
 function seedParticle(p){
   p.mode='field'; p.x=1.5+Math.random()*2.5;
-  p.y=FL.inlet[0]+Math.random()*(FL.inlet[1]-FL.inlet[0]); p.age=0; p.s=0;
+  p.y=FL.inlet[0]+Math.random()*(FL.inlet[1]-FL.inlet[0]); p.age=0; p.s=0; p.dead=false;
 }
 /* dt 는 배속이 곱해진 가상 경과 시간이다. 한 번에 적분하면 100× 에서 입자가
    한 스텝에 수십 칸을 건너뛰어 필터 벽을 통과해 버리므로 스텝을 쪼갠다.
    (유동 적분과 달리 입자는 비용이 낮아 분할 부담이 거의 없다) */
+/* 환기 중 남아 있는 잔류 기체의 비율 — sceneBulk() 의 감쇠와 같은 식을 쓴다.
+   입자를 유속만으로 빼내면 몇 초 만에 텅 비어 버려 30분에 걸친 농도 감쇠와 어긋난다. */
+function ventFrac(){ return ST.ventMin<0?1:clamp(Math.exp(-ST.ventMin/TAU_VENT),0,1); }
+/* 환기 중 천장으로 빠져나간 입자는 챔버 안쪽 임의 위치에서 다시 섞인다.
+   (외기 유입구에서 재투입하면 깨끗한 공기가 NO₂ 를 몰고 들어오는 그림이 된다) */
+function seedInterior(p){
+  for(let n=0;n<40;n++){
+    const x=1+Math.random()*(NX-3), y=1+Math.random()*(NY-3);
+    if(FL.solid[IX(x|0,y|0)]) continue;
+    p.mode='field'; p.x=x; p.y=y; p.age=0; p.s=0; p.dead=false; return;
+  }
+  seedParticle(p);
+}
 function stepParticles(dt,count,ductSpeed){
-  while(PART.length<count){ const p={mode:'field',x:0,y:0,s:0,lane:0,age:0}; seedParticle(p); PART.push(p); }
-  while(PART.length>count) PART.pop();
-  if(dt<=0) return;
-  const nsub=clamp(Math.ceil(dt/0.10),1,160), h=dt/nsub;
+  const vent=FL.ventOn;
+  if(vent){
+    // 잔류량을 모델 감쇠에 묶는다. 줄이기만 하고 새로 늘리지 않는다.
+    const target=Math.round(count*ventFrac());
+    while(PART.length>target) PART.pop();
+  }else{
+    while(PART.length<count){ const p={mode:'field',x:0,y:0,s:0,lane:0,age:0}; seedParticle(p); PART.push(p); }
+    while(PART.length>count) PART.pop();
+  }
+  if(dt<=0||!PART.length) return;
+  const nsub=clamp(Math.ceil(dt/0.08),1,320), h=dt/nsub;
   for(let n=0;n<nsub;n++){
     for(const p of PART){
       if(p.mode==='duct'){
+        if(vent){ seedInterior(p); continue; }   // 댐퍼가 닫혔으므로 덕트에 있던 분량은 챔버로
         p.s+=ductSpeed*h;
         if(p.s>=1) seedParticle(p);
         continue;
       }
       const i=clamp(p.x|0,1,NX-2), j=clamp(p.y|0,1,NY-2), k=IX(i,j);
       p.x+=FL.u[k]*h; p.y+=FL.v[k]*h; p.age+=h;
-      if(p.x>=NX-2){ p.mode='duct'; p.s=0; p.lane=Math.random()*2-1; continue; }
-      if(p.x<1||p.y<1||p.y>=NY-1||p.age>30) seedParticle(p);
+      if(p.x<1||p.x>=NX-2||p.y<1||p.y>=NY-1||p.age>30){
+        if(vent){ seedInterior(p); continue; }
+        if(p.x>=NX-2){ p.mode='duct'; p.s=0; p.lane=Math.random()*2-1; }
+        else seedParticle(p);
+      }
     }
   }
 }
@@ -1243,11 +1318,24 @@ function ductColor(t){
   const lut=fieldLUT(), n=clamp(Math.round(t*255),0,255)*3;
   return `rgb(${lut[n]},${lut[n+1]},${lut[n+2]})`;
 }
-function drawDuct(c,val){
+function drawDuct(c,val,idle){
   const dark=isDark();
   c.lineJoin='round';
   /* 관벽 */
   c.lineCap='round'; c.strokeStyle=V('--line-2'); c.lineWidth=DUCT_W+9; ductPath(c); c.stroke();
+  if(idle){
+    /* 환기 중 — 순환 댐퍼를 닫아 흐름이 없다. 정지 상태로 그리고 차단 표시를 얹는다. */
+    c.lineCap='butt'; c.strokeStyle=V('--sunk'); c.lineWidth=DUCT_W; ductPath(c); c.stroke();
+    c.lineCap='round'; c.strokeStyle=V('--line'); c.lineWidth=1; ductPath(c); c.stroke();
+    [0.035,0.965].forEach(s=>{ const q=ductPoint(s);
+      c.save(); c.translate(q.x,q.y); c.rotate(Math.atan2(q.ny,q.nx));
+      c.strokeStyle=V('--crit'); c.lineWidth=3.4; c.beginPath();
+      c.moveTo(-DUCT_W*0.52,0); c.lineTo(DUCT_W*0.52,0); c.stroke(); c.restore(); });
+    const q=ductPoint(0.5);
+    c.fillStyle=V('--ink-3'); c.font='600 9.5px "Noto Sans KR",sans-serif';
+    c.textAlign='center'; c.textBaseline='middle'; c.fillText('댐퍼 닫힘 · 순환 정지',q.x,q.y);
+    return;
+  }
   /* 내부 — 농도장과 동일한 컬러맵 */
   c.lineCap='butt'; c.strokeStyle=ductColor(val); c.lineWidth=DUCT_W; ductPath(c); c.stroke();
   /* 관 중심의 빠른 코어 — 포물선 속도 분포를 두 겹으로 암시 */
@@ -1277,11 +1365,13 @@ function drawDuct(c,val){
    0-D 모델에는 환기 구간이 없으므로(다음 차수 이월 방지 목적) 이 연출은
    가시화 전용이며 어떤 정량값에도 반영되지 않는다. */
 function drawVent(c,op,phase){
-  const ang=op*1.08, dw=CB.w*0.30, dh=11;
-  const bob=Math.sin(phase*Math.PI*2)*5;
-  [CB.x+CB.w*0.13, CB.x+CB.w*0.57].forEach(hx=>{
-    c.fillStyle=V('--page'); c.globalAlpha=.92*op; c.fillRect(hx,CB.y-2,dw,5); c.globalAlpha=1;
-    c.save(); c.translate(hx,CB.y); c.rotate(-ang);
+  const dh=11, bob=Math.sin(phase*Math.PI*2)*5;
+  // 개구부 위치는 VENT_L·VENT_R 를 gx() 로 환산해 쓴다 — 유동 경계와 화면이 항상 일치한다.
+  [VENT_L,VENT_R].forEach(sp=>{
+    const x0=gx(sp[0]), dw=gx(sp[1])-x0;
+    c.fillStyle=V('--page'); c.globalAlpha=.92*op;
+    c.fillRect(x0,CB.y-2,dw,FD.y-CB.y+4); c.globalAlpha=1;
+    c.save(); c.translate(x0,CB.y); c.rotate(-op*1.08);
     c.fillStyle=V('--surface-2'); c.strokeStyle=V('--line-2'); c.lineWidth=1.6;
     c.beginPath(); c.roundRect(0,-dh,dw,dh,3); c.fill(); c.stroke(); c.restore();
   });
@@ -1290,8 +1380,9 @@ function drawVent(c,op,phase){
     c.beginPath(); c.moveTo(x,y0); c.lineTo(x,y1);
     c.moveTo(x,y1); c.lineTo(x-5,y1-6*d); c.moveTo(x,y1); c.lineTo(x+5,y1-6*d);
     c.stroke(); c.globalAlpha=1; };
-  for(let n=0;n<3;n++) arrow(CB.x+CB.w*(0.18+0.09*n), CB.y-34+bob, CB.y+6+bob, V('--water'));
-  for(let n=0;n<3;n++) arrow(CB.x+CB.w*(0.62+0.09*n), CB.y+6-bob, CB.y-34-bob, V('--no2'));
+  const at=(sp,f)=>gx(sp[0]+(sp[1]-sp[0])*f);
+  for(let n=0;n<3;n++) arrow(at(VENT_L,0.25+0.25*n), CB.y-34+bob, CB.y+12+bob, V('--water'));
+  for(let n=0;n<3;n++) arrow(at(VENT_R,0.25+0.25*n), CB.y+12-bob, CB.y-34-bob, V('--no2'));
 }
 
 function drawScene(i,dt){
@@ -1314,12 +1405,12 @@ function drawScene(i,dt){
   const rr=(x,y,w,h,r)=>{c.beginPath();c.roundRect(x,y,w,h,r);};
 
   /* 덕트 루프 — 연속장(CFD 스타일) */
-  drawDuct(c,bulkLv);
+  drawDuct(c,bulkLv,venting);
   c.fillStyle=V('--surface'); c.strokeStyle=V('--line-2'); c.lineWidth=1.4;
   rr(430,538,152,54,7); c.fill(); c.stroke();
   lab('Air Handling Unit',506,556,V('--ink'),10.5,'center',700);
   mn((P.uface*1000).toFixed(0)+' mm/s 면속도',506,574,V('--ink-3'),9);
-  const fa=(ST.animT*1.2)%6.2832;      // 일시정지하면 팬도 멈춘다
+  const fa=venting?0:(ST.animT*1.2)%6.2832;   // 일시정지·환기 중에는 팬도 멈춘다
   c.save(); c.translate(406,565); c.rotate(fa); c.strokeStyle=V('--s1'); c.lineWidth=2;
   for(let k=0;k<3;k++){c.rotate(2.094);c.beginPath();c.moveTo(0,0);c.lineTo(0,-11);c.stroke();} c.restore();
   c.strokeStyle=V('--line-2'); c.lineWidth=1.4;
@@ -1728,8 +1819,13 @@ function tick(now){
       }
     }
     ST.animT+=vdt;
-    ST.ductPhase=(ST.ductPhase+vdt*(0.10+P.uface*1.1)*2.2)%1;
+    // 환기 중에는 덕트가 멈춰 있으므로 줄무늬 위상도 더 이상 흐르지 않는다.
+    if(ST.ventMin<0) ST.ductPhase=(ST.ductPhase+vdt*(0.10+P.uface*1.1)*2.2)%1;
     const i=idxAt(ST.playMin);
+    // 환기 진입·복귀는 경계조건 자체가 바뀌는 일이라 격자를 다시 만든다.
+    // (천장 개구부를 열고 좌우 덕트 댐퍼를 닫는다)
+    const wantVent=ST.ventMin>=0;
+    if(FL.ventOn!==wantVent){ FL.ventOn=wantVent; buildGeometry(); }
     ST.acc+=vdt;
     if(ST.acc>1/32){
       const bulk=sceneBulk(i);
@@ -1765,7 +1861,9 @@ function restartLoop(resetClock){
 function resetRun(){
   ST.playMin=-PRE_MIN; ST.ventMin=-1; ST.animT=0; ST.ductPhase=0; ST.acc=0;
   drops.length=0;
+  if(FL.ventOn){ FL.ventOn=false; buildGeometry(); }   // 천장을 닫고 덕트 댐퍼를 연다
   resetField(cleanLevel());
+  scatterParticles(260);
   updateLive(); drawTS(ST.playMin); drawCT(ST.playMin);
 }
 function setPlaying(v){
@@ -1792,8 +1890,9 @@ function init(){
     setPlaying(!ST.playing);
   });
   $('resetBtn').addEventListener('click',()=>{
+    // 리셋은 처음 상태에서 멈춰 선다. 시작은 사용자가 누른다.
     resetRun();
-    setPlaying(true); restartLoop(true);  // 리셋은 곧바로 처음부터 다시 재생
+    setPlaying(false); restartLoop(true);
   });
   document.querySelectorAll('.transport .seg button').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('.transport .seg button').forEach(x=>x.setAttribute('aria-pressed','false'));

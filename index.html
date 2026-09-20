@@ -1322,6 +1322,10 @@ function paintField(){
       : clamp(FL.dn[k],0,1);
     else if(ST.field==='vel') t=clamp(Math.hypot(FL.u[k],FL.v[k])/vmax,0,1);
     else { const i1=clamp(i,1,NX-2), j1=clamp(j,1,NY-2), kk=IX(i1,j1);
+      // ω = ∂v/∂x − ∂u/∂y. 격자 j 가 아래로 증가하므로 이 값의 부호는
+      // 수학 규약(y 위쪽, +가 반시계)과 반대다 — 여기서는 +가 화면상 시계방향이다.
+      // 따라서 램프의 높은 쪽(빨강)이 시계, 낮은 쪽(파랑)이 반시계다.
+      // 실측 확인: w=+15.7 셀은 위쪽 u=+26.9 / 아래쪽 u=−5.3 으로 시계 회전.
       const w=(FL.v[kk+1]-FL.v[kk-1]-FL.u[kk+NX]+FL.u[kk-NX])*0.5;
       t=clamp(0.5+w*0.06,0,1); }
     const n=Math.round(t*255)*3;
@@ -1624,8 +1628,8 @@ function updateColorbar(){
       $('cbarUnit').textContent='ppm — 실척 표시. 단일통과 제거가 수 %라 공간 대비가 거의 없습니다'; } }
   else if(ST.field==='vel'){ $('cbarLo').textContent='0'; $('cbarHi').textContent='최대';
     $('cbarUnit').textContent='속도 크기 |U| — 필터 통과부 감속·후류 재순환 확인'; }
-  else { $('cbarLo').textContent='− 시계'; $('cbarHi').textContent='+ 반시계';
-    $('cbarUnit').textContent='와도 ω — 회색이 0, 양방향 발산 스케일'; }
+  else { $('cbarLo').textContent='↺ 반시계'; $('cbarHi').textContent='시계 ↻';
+    $('cbarUnit').textContent='와도 ω — 화면에서 보이는 회전 방향. 회색이 0, 양방향 발산 스케일'; }
 }
 
 /* ══ 7. 식물 혼합 (합 100 % 구속) ══════════════════════════════ */

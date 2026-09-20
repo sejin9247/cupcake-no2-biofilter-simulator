@@ -236,6 +236,17 @@ table.ref{border-collapse:collapse;font-size:10.5px;min-width:520px;width:100%}
 table.ref th{text-align:left;font-weight:700;color:var(--ink);padding:5px 9px;border-bottom:1.5px solid var(--line-2);white-space:nowrap}
 table.ref td{padding:4px 9px;border-bottom:1px solid var(--grid);vertical-align:top}
 table.ref td.n{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* ── 전체화면 (가시화 패널만) ──
+   네이티브 Fullscreen API 와 iframe 폴백이 같은 .fs 클래스를 쓴다. */
+#stagePanel.fs{position:fixed;inset:0;z-index:200;margin:0;border:0;border-radius:0;
+  background:var(--page);box-shadow:none;display:flex;flex-direction:column}
+#stagePanel.fs .panel-hd{align-items:center;gap:10px 12px;flex-wrap:wrap;padding:9px 14px}
+#stagePanel.fs .panel-hd .note{margin-left:0}
+#stagePanel.fs .transport{margin-left:auto}
+#stagePanel.fs>.panel-bd{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:10px 14px 12px}
+#stagePanel.fs .stage-wrap{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center}
+#stagePanel.fs #scene{width:auto;height:100%;max-width:100%;max-height:100%;aspect-ratio:1000/600}
+@media (max-width:760px){#stagePanel.fs #scene{width:100%;height:auto}}
 .foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-size:10.5px;color:var(--ink-3);line-height:1.7}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -426,7 +437,7 @@ table.ref td.n{text-align:right;font-family:"IBM Plex Mono",monospace;font-varia
 
 <!-- ═══ 스테이지 ═══ -->
 <section>
-  <div class="panel">
+  <div class="panel" id="stagePanel">
     <div class="panel-hd"><h2>기류·농도장 가시화</h2><span class="note" id="sceneNote"></span></div>
     <div class="panel-bd" style="padding:12px">
       <div class="viewbar">
@@ -440,6 +451,8 @@ table.ref td.n{text-align:right;font-family:"IBM Plex Mono",monospace;font-varia
         <button type="button" class="chip" data-ov="part" aria-pressed="true">입자 추적</button>
         <button type="button" class="chip" data-ov="grid" aria-pressed="false">격자</button>
         <button type="button" class="chip" data-ov="boost" aria-pressed="true">대비 강조</button>
+        <button type="button" class="chip" id="fsBtn" aria-pressed="false"
+          style="margin-left:auto" title="가시화 패널만 전체화면 · ESC 로 나가기">⤢ 전체화면</button>
       </div>
       <div class="stage-wrap"><canvas id="scene" width="1000" height="600"></canvas></div>
       <div class="cbar">
@@ -1399,7 +1412,8 @@ function drawVent(c,op,phase){
 
 function drawScene(i,dt){
   const cv=$('scene'), dpr=Math.min(devicePixelRatio||1,2);
-  const scale=Math.max(0.2,(cv.clientWidth||SC.W)/SC.W);   // 폭 0 이면 캔버스가 사라진다
+  // 폭 0 이면 캔버스가 사라진다. 전체화면에서는 반대로 버퍼가 과도하게 커지므로 상한도 둔다.
+  const scale=clamp((cv.clientWidth||SC.W)/SC.W,0.2,2.5);
   const bw=Math.round(SC.W*scale*dpr), bh=Math.round(SC.H*scale*dpr);
   if(cv.width!==bw||cv.height!==bh){cv.width=bw;cv.height=bh;}
   const c=cv.getContext('2d'); c.setTransform(dpr*scale,0,0,dpr*scale,0,0);
@@ -1888,6 +1902,34 @@ function setPlaying(v){
   $('playBtn').classList.toggle('primary',true);
 }
 
+/* ══ 9.5 전체화면 — 가시화 패널만 ══════════════════════════════
+   Artifact 처럼 iframe 안에서는 requestFullscreen 이 거부될 수 있다.
+   그때는 페이지 안에서 덮는 방식으로 넘어가며, 두 경우 모두 .fs 클래스를 쓴다.
+   재생 컨트롤(.transport)은 복제하지 않고 그대로 옮긴다 — 복제하면 id 가 겹치고
+   이벤트 핸들러도 따라오지 않는다. */
+function setFs(on){
+  const stage=$('stagePanel'), tp=document.querySelector('.transport');
+  stage.classList.toggle('fs',on);
+  (on?stage.querySelector('.panel-hd'):document.querySelector('.topbar-in')).appendChild(tp);
+  const b=$('fsBtn');
+  b.setAttribute('aria-pressed',String(on));
+  b.textContent=on?'⤡ 나가기':'⤢ 전체화면';
+  document.body.style.overflow=on?'hidden':'';
+  // 캔버스 표시 크기가 바뀌었으니 다음 프레임에 다시 그린다
+  requestAnimationFrame(()=>{ try{ if(SIM) drawScene(idxAt(ST.playMin),0); }catch(e){} });
+}
+function toggleFs(){
+  const stage=$('stagePanel'), on=!stage.classList.contains('fs');
+  if(on){
+    setFs(true);
+    const p=stage.requestFullscreen&&stage.requestFullscreen({navigationUI:'hide'});
+    if(p&&p.then) p.then(()=>{stage.dataset.native='1';},()=>{stage.dataset.native='';});
+  }else{
+    if(document.fullscreenElement) document.exitFullscreen&&document.exitFullscreen();
+    stage.dataset.native=''; setFs(false);
+  }
+}
+
 /* ══ 10. 초기화 ════════════════════════════════════════════════ */
 function init(){
   buildSpecies();
@@ -1919,6 +1961,19 @@ function init(){
   document.querySelectorAll('.chip[data-ov]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.dataset.ov; ST.ov[k]=!ST.ov[k]; b.setAttribute('aria-pressed',String(ST.ov[k]));
     if(k==='stream'&&ST.ov.stream) computeStreamlines(); }));
+  $('fsBtn').addEventListener('click',toggleFs);
+  // ESC — 네이티브 전체화면은 브라우저가 처리하고, 폴백 모드는 여기서 받는다
+  document.addEventListener('fullscreenchange',()=>{
+    const stage=$('stagePanel');
+    if(!document.fullscreenElement&&stage.classList.contains('fs')&&stage.dataset.native==='1'){
+      stage.dataset.native=''; setFs(false);
+    }
+  });
+  addEventListener('keydown',e=>{
+    if(e.key!=='Escape') return;
+    const stage=$('stagePanel');
+    if(stage.classList.contains('fs')&&!document.fullscreenElement){ stage.dataset.native=''; setFs(false); }
+  });
   $('tsTableBtn').addEventListener('click',e=>{
     ST.table=!ST.table; e.currentTarget.setAttribute('aria-pressed',String(ST.table));
     $('tsWrap').hidden=ST.table; $('tsTable').hidden=!ST.table;
